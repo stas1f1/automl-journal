@@ -1,0 +1,167 @@
+#!/usr/bin/env python3
+"""Render the case-study data figure (figures/fig_cases.pdf).
+
+Three panels, one per scientific case, drawn from the original open data so
+the reader sees what each task is about rather than a benchmark id:
+
+  maize    G2F yield trials (Kick et al., G3 2023; Zenodo 6916775, CC-BY 3.0):
+           grain yield per location-year, with the held-out environments of the
+           official split highlighted. The task is yield of hybrids in
+           environments the model has never seen.
+  F-DATA   Fugaku job logs (Antici et al., Sci. Data 2025; Zenodo 11467483,
+           CC-BY 4.0), month 2021-04: success rate against requested node
+           count. The task is flagging jobs likely to fail at submission time.
+  OpenPoly literature-curated polymer table (Wang et al., CJPS 2025; GitHub
+           WangGroupFDU/Openpoly_benchmark, MIT): glass-transition temperature
+           against chain rigidity read off the PSMILES string.
+
+Sources are downloaded once into .cache/cases/ (set CASES_DATA_DIR to reuse a
+copy). Run from paper/:  python3 make_case_figures.py
+"""
+import os
+import urllib.request
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from make_figures import C, COL_W, FULL_W, GRID_C, INK, MUTED, PANEL, save  # noqa: E402
+
+DATA = Path(os.environ.get("CASES_DATA_DIR", Path(__file__).parent / ".cache" / "cases"))
+SRC = {
+    "maize.csv": "https://zenodo.org/records/6916775/files/Train_Test_Split_Reference_Phenotypes.csv",
+    "fdata_21_04.parquet": "https://zenodo.org/records/11467483/files/21_04.parquet",
+    "openpoly.csv": ("https://raw.githubusercontent.com/WangGroupFDU/Openpoly_benchmark/"
+                     "main/data/final_polymer_properties_fromliterature.csv"),
+}
+TEST_C = "#D55E00"      # held-out / target of prediction
+TRAIN_C = "#9a9a9a"
+ACCENT = "#0072B2"
+
+
+def fetch(name):
+    p = DATA / name
+    if not p.exists():
+        DATA.mkdir(parents=True, exist_ok=True)
+        print("downloading", SRC[name])
+        urllib.request.urlretrieve(SRC[name], p)
+    return p
+
+
+# ---------------------------------------------------------------- maize
+def panel_maize(ax):
+    m = pd.read_csv(fetch("maize.csv"), low_memory=False)
+    m = m[m.GrainYield.notna() & m.Set.isin(["Train", "Test"])]
+    m["env"] = m.ExperimentCode.astype(str) + "_" + m.Year.astype(str)
+    g = (m.groupby(["env", "Year", "Set"])["GrainYield"]
+          .agg(["median", lambda s: s.quantile(0.25), lambda s: s.quantile(0.75), "size"])
+          .reset_index())
+    g.columns = ["env", "Year", "Set", "med", "q1", "q3", "n"]
+    g = g.sort_values(["Year", "med"]).reset_index(drop=True)
+    x = np.arange(len(g))
+    for s, col, z in (("Train", TRAIN_C, 1), ("Test", TEST_C, 2)):
+        sel = g.Set == s
+        ax.vlines(x[sel], g.q1[sel], g.q3[sel], color=col, lw=0.8, zorder=z, alpha=0.9)
+        ax.scatter(x[sel], g.med[sel], s=6, color=col, zorder=z + 1, lw=0)
+    # year bands
+    for y, grp in g.groupby("Year"):
+        lo, hi = grp.index.min(), grp.index.max()
+        ax.text((lo + hi) / 2, 8, str(y), ha="center", va="bottom", fontsize=6, color=MUTED)
+        if lo > 0:
+            ax.axvline(lo - 0.5, color=GRID_C, lw=0.6)
+    ax.set_xlim(-1, len(g))
+    ax.set_ylim(0, 320)
+    ax.set_xticks([])
+    ax.set_ylabel("grain yield of field plots, bu/acre")
+    ax.set_xlabel(f"one mark = one site in one year ({len(g)} in all)", fontsize=6.5)
+    ax.grid(axis="y")
+    ax.set_title("Maize yield: fields the model never saw", **PANEL)
+    ax.scatter([], [], s=10, color=TRAIN_C, label=f"sites used for training")
+    ax.scatter([], [], s=10, color=TEST_C, label=f"sites to predict (held out)")
+    ax.legend(loc="upper left", handletextpad=0.3)
+
+
+# ---------------------------------------------------------------- F-DATA
+def panel_fdata(ax):
+    f = pd.read_parquet(fetch("fdata_21_04.parquet"), columns=["nnumr", "ec"])
+    f = f[f.ec.notna()]
+    f["ok"] = (f.ec == 0)
+    edges = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 4096, 1e9]
+    f["bin"] = pd.cut(f.nnumr, edges, right=True)
+    g = f.groupby("bin", observed=True)["ok"].agg(["mean", "size"]).reset_index()
+    x = np.arange(len(g))
+    majority = f.ok.mean()
+    ax.bar(x, 100 * g["mean"], width=0.72, color=ACCENT, lw=0, zorder=2)
+    ax.axhline(100 * majority, color=TEST_C, lw=0.9, ls="--", zorder=3)
+    ax.text(len(g) - 0.4, 100 * majority - 0.8, f"{100*majority:.1f}%: always guess \"success\"",
+            ha="right", va="top", fontsize=6, color=TEST_C,
+            bbox=dict(boxstyle="square,pad=0.15", fc="white", ec="none", alpha=0.85))
+    for xi, (mean, n) in enumerate(zip(g["mean"], g["size"])):
+        ax.text(xi, 62, f"{n/1000:.0f}k" if n >= 1000 else str(n), ha="center", va="bottom",
+                fontsize=5, color="white", rotation=90)
+    labels = ["1", "2", "3-4", "5-8", "9-16", "17-32", "33-64", "65-128", "129-256",
+              "257-512", "513-1k", "1k-4k", ">4k"]
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels[:len(g)], rotation=60, ha="right", fontsize=5.5)
+    ax.set_ylim(60, 100)
+    ax.set_xlim(-0.6, len(g) - 0.4)
+    ax.set_ylabel("jobs that finished successfully, %")
+    ax.set_xlabel("compute nodes the job asked for (job count in bar)", fontsize=6.5)
+    ax.grid(axis="y")
+    ax.set_title("Fugaku jobs: will this job fail?", **PANEL)
+
+
+# ---------------------------------------------------------------- OpenPoly
+def rigidity(psmiles):
+    """Aromatic-atom fraction of the repeat unit, a crude chain-rigidity index."""
+    from rdkit import Chem
+    from rdkit import RDLogger
+    RDLogger.DisableLog("rdApp.*")
+    mol = Chem.MolFromSmiles(psmiles.replace("[*]", "C").replace("*", "C"))
+    if mol is None or mol.GetNumHeavyAtoms() == 0:
+        return np.nan, np.nan
+    arom = sum(a.GetIsAromatic() for a in mol.GetAtoms())
+    return arom / mol.GetNumHeavyAtoms(), mol.GetNumHeavyAtoms()
+
+
+def panel_openpoly(ax):
+    o = pd.read_csv(fetch("openpoly.csv"))
+    o = o[["Name", "PSMILES", "Tg (K)"]].dropna()
+    o[["arom", "heavy"]] = o.PSMILES.apply(lambda s: pd.Series(rigidity(s)))
+    o = o.dropna()
+    rng = np.random.default_rng(0)
+    jitter = rng.uniform(-0.012, 0.012, len(o))
+    ax.scatter(o.arom + jitter, o["Tg (K)"], s=7, color=ACCENT, alpha=0.55, lw=0, zorder=2,
+               label=f"one dot = one polymer ({len(o)})")
+    # trend by bins
+    bins = pd.cut(o.arom, [-0.01, 0.001, 0.35, 0.6, 1.0])
+    grp = o.groupby(bins, observed=True)
+    med, cen = grp["Tg (K)"].median(), grp["arom"].mean()
+    ax.plot(cen.values, med.values, color=TEST_C, lw=1.2, marker="o", ms=3, zorder=3,
+            label="typical value (median)")
+    ax.set_xlabel("share of ring atoms in the repeat unit", fontsize=6.5)
+    ax.set_ylabel("$T_g$: where the plastic softens, K")
+    ax.set_xlim(-0.04, 1.04)
+    ax.grid(axis="y")
+    ax.set_title("Polymers: softening point", **PANEL)
+    ax.text(0.0, 128, "flexible chains", ha="left", va="bottom", fontsize=6, color=MUTED)
+    ax.text(1.0, 128, "rigid chains", ha="right", va="bottom", fontsize=6, color=MUTED)
+    ax.set_ylim(120, 610)
+    ax.legend(loc="upper left", handletextpad=0.3)
+
+
+def fig_cases():
+    fig, axes = plt.subplots(1, 3, figsize=(FULL_W, 2.05))
+    panel_maize(axes[0])
+    panel_fdata(axes[1])
+    panel_openpoly(axes[2])
+    fig.subplots_adjust(wspace=0.36)
+    save(fig, "fig_cases")
+
+
+if __name__ == "__main__":
+    fig_cases()

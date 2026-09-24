@@ -1,0 +1,129 @@
+\section{Introduction}
+\label{sec:intro}
+
+% STAGE 3: rewritten 9 September 2026.  Decisions taken: RQ1--RQ3 stay; the
+% second thesis is stated in its weak form (non-monotonic, not inverted U).
+
+Large language models have reshaped automated machine learning. Systems built
+on them plan experiments, write and repair code, read execution logs and
+interpret their own results, which classical AutoML frameworks, searching a
+fixed space of pipelines, never did. The design space of such systems is
+large and largely uncharted: implementations differ in how much autonomy they
+grant the model, how they inject knowledge about libraries and methods, and
+how tightly they constrain the sequence of actions.
+
+How much each of these design choices adds to accuracy remains unmeasured. Papers in the
+area typically introduce one system and report that it improves on a previous
+one, with the backbone model, the scaffold and the evaluation protocol all
+changing at once. Comparisons across papers therefore cannot separate the architecture from the
+model. Agentic systems are also rarely measured against the baseline a
+competent practitioner would reach for, tuned gradient boosting; where gradient
+boosting appears at all, it is usually untuned.
+
+This paper isolates the architectural axis. We fix the backbone to a single
+open 31B-parameter model and vary only the surrounding system across three
+points of the design space. We call the model weak in a relative sense: it is
+small against the 80B to 1.6T backbones of comparable studies
+(Section~\ref{sec:related}), and two models one generation older return
+nothing usable (Section~\ref{sec:modelaxis}). \textbf{FEDOT.LLM} is a rigid pipeline in which the
+model configures a fixed AutoML backend through templates with fixed input and
+output contracts. \textbf{AutoDS-Tools} is a multi-agent system of six
+specialised agents that communicate through structured reports and have broad
+freedom of action. \textbf{Terminus-2} is an open harness that gives the model
+a shell, a working directory and an execution loop, and prescribes nothing
+else. All three run inside one execution environment that records every
+attempt, error, token and unit of cost. All are evaluated on the official
+temporal splits of TabReD~\citep{rubachev2024tabred}, a benchmark of
+real-world tabular tasks under distribution shift, against the eighteen
+reference methods published with it. Those references are Optuna-tuned and
+averaged over fifteen seeds, so they set a ceiling that reflects competent
+practice. A second benchmark,
+MLAgentBench~\citep{huang2024mlagentbench}, supplies a working script in every
+task and so provides a second starting point.
+
+We ask three questions.
+\begin{description}
+  \item[RQ1.] With the model fixed, how much does the choice of system move
+        the result on real-world tabular tasks, and which expert-tuned
+        baseline does the best system reach?
+  \item[RQ2.] How much of that effect belongs to the architecture itself, and
+        how much to what ships with it: the instruction file, the container
+        image and the choice of model?
+  \item[RQ3.] Does the instruction file keep its value when the task starts
+        from a working script, and when the same text is handed to
+        Terminus-2?
+\end{description}
+Section~\ref{sec:ceiling} answers RQ1 and RQ2 on TabReD,
+Section~\ref{sec:mlab} answers RQ3 on MLAgentBench, and
+Section~\ref{sec:mechanism} reads the execution traces for the mechanism
+behind both.
+
+The contributions are as follows.
+\begin{enumerate}
+\setlength{\itemsep}{0pt}
+\renewcommand{\labelenumi}{(\roman{enumi})}
+\item We measure how far the system around a fixed open model reaches. On the
+  eight TabReD tasks, against eighteen Optuna-tuned methods, AutoDS-Tools is
+  level with tuned LightGBM and $\gapXGB$ short of tuned XGBoost on a scale
+  where 0 is the weakest and 1 the strongest published method per task; its
+  average rank is $\rkAutoDS$ of \nMethods{}, against $\rkTerminus$ for
+  Terminus-2 and $\rkFedot$ for FEDOT.LLM, which are level. No system
+  approaches the strongest published method.
+\item We separate the architecture from what ships with it. AutoDS-Tools
+  leads Terminus-2 by $\gapAgentsShip$ on that scale; $\layerWorthNorm$ of
+  that is its instruction file, the prescribed-knowledge layer of
+  Section~\ref{sec:axis}, and $\gapAgentsOff$ the six-agent architecture;
+  with the file removed the three architectures lie within $\spanArch$ of
+  each other. The container image changes nothing measurable, and a backbone swap across
+  a \axPriceSpread$\times$ price range moves accuracy by under one per cent
+  at the median.
+\item We split the layer into the two instructions that earlier ablations
+  switch together. On TabReD, naming the library improves the task metric by
+  $\gridToolMeanU\%$ on average, advice on how to train and validate by
+  $\gridDiscMeanU\%$, and both together by $\gridBothMeanU\%$, below the
+  $\gridSumHalvesU\%$ sum of the two.
+\item We test the same layer at a different starting point and in a
+  different architecture. Where every task starts from a working script
+  (MLAgentBench) it leaves no submission on \mlabWiped{} of \mlabRepeated{}
+  tasks and helps on one. Appended to Terminus-2 it leaves accuracy unchanged
+  and loses \ktDiscLost{} of \ktDiscTrials{} trials with the training advice
+  and \ktToolLost{} of \ktToolTrials{} with the library instruction; deleting
+  two paragraphs about training time restores every trial. Together (iii)
+  and (iv) explain why published ablations of knowledge injection disagree.
+\item We check external validity on three published scientific tasks: maize
+  yield, supercomputer job failure and polymer glass transition. Given the
+  task text alone, Terminus-2 matched or beat the author baselines where the
+  split is comparable and rediscovered the published featurisation; the text
+  that names LightAutoML, on which AutoDS-Tools ran, cost Terminus-2 all
+  \caseTermPrescTotal{} attempts.
+\item We release every task, instruction file, trace and script behind these
+  numbers.
+\end{enumerate}
+
+Across the three settings no single system wins, and the choice depends on
+what the task supplies.
+\begin{itemize}
+\setlength{\itemsep}{0pt}
+\item AutoDS-Tools is the most accurate on both benchmarks, level with tuned
+  LightGBM on TabReD and ahead of Terminus-2 on \headWinsAutoDS{} of
+  \headTasks{} MLAgentBench tasks, and the slowest: \minAutoDSTabred{} minutes
+  per TabReD task against \minTerminusTabred{} for Terminus-2.
+\item Terminus-2 is second on both benchmarks and loses more trials. On the
+  scientific tasks, given the task text alone, it matched or beat the author
+  baselines in one to three minutes per attempt.
+\item FEDOT.LLM is level with Terminus-2 on TabReD and the only system that
+  tunes its models: best of the three on one TabReD task and on F-DATA, at
+  $\minFedotTabredMin$ to $\minFedotTabredMax$ minutes a task.
+\end{itemize}
+
+The design also bears on a common assumption. Terminal-Bench 2.0 introduces
+Terminus-2 as a minimal scaffold, built so that a leaderboard over it reads
+as a comparison between models~\citep{merrill2026terminalbench}. That reading
+is sound only if the scaffold contributes little, and in the coding domain it
+is already under pressure~\citep{harnessbench2026,scaffoldeffect2026}. We ask
+the same question on tabular data, where expert-tuned baselines exist. On
+TabReD the instruction file that AutoDS-Tools ships with moves the result by
+$\layerWorthNorm$ on the normalised scale, and replacing the backbone under
+the same system by one \axPriceSpread$\times$ the price moves it by $0.04$
+(Sections~\ref{sec:grid} and~\ref{sec:modelaxis}). A leaderboard over one
+scaffold therefore measures the scaffold's instructions as much as the model.

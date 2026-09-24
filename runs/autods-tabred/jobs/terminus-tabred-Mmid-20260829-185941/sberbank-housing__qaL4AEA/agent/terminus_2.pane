@@ -1,0 +1,106 @@
+[?2004hroot@94de41bfcdae:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@94de41bfcdae:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@94de41bfcdae:/workspace# ls -la /app/data
+[?2004ltotal 69000
+drwxr-xr-x 2 root root     4096 Aug 27 21:18 .
+drwxr-xr-x 3 root root     4096 Aug 28 15:09 ..
+-rw-rw-r-- 1 root root     6087 Aug 27 21:18 schema.json
+-rw-rw-r-- 1 root root 11051955 Aug 27 21:18 test.csv
+-rw-rw-r-- 1 root root 47434461 Aug 27 21:18 train.csv
+-rw-rw-r-- 1 root root 12145508 Aug 27 21:18 val.csv
+[?2004hroot@94de41bfcdae:/workspace# pip install catboost pandas scikit-learn
+[?2004lRequirement already satisfied: catboost in /usr/local/lib/python3.12/site-packages (1.2.10)
+Requirement already satisfied: pandas in /usr/local/lib/python3.12/site-packages (3.0.5)
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.12/site-packages (1.9.0)
+Requirement already satisfied: graphviz in /usr/local/lib/python3.12/site-packages (from catboost) (0.21)
+Requirement already satisfied: matplotlib in /usr/local/lib/python3.12/site-packages (from catboost) (3.11.1)
+Requirement already satisfied: numpy<3.0,>=1.16.0 in /usr/local/lib/python3.12/site-packages (from catboost) (2.5.2)
+Requirement already satisfied: scipy in /usr/local/lib/python3.12/site-packages (from catboost) (1.18.1)
+Requirement already satisfied: plotly in /usr/local/lib/python3.12/site-packages (from catboost) (7.0.0)
+Requirement already satisfied: six in /usr/local/lib/python3.12/site-packages (from catboost) (1.17.0)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: joblib>=1.4.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (1.5.3)
+Requirement already satisfied: narwhals>=2.0.1 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (2.25.0)
+Requirement already satisfied: threadpoolctl>=3.5.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (3.6.0)
+Requirement already satisfied: contourpy>=1.0.1 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (1.3.3)
+Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (0.12.1)
+Requirement already satisfied: fonttools>=4.28.2 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (4.63.0)
+Requirement already satisfied: kiwisolver>=1.3.1 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (1.5.1)
+Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (26.3)
+Requirement already satisfied: pillow>=9 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (12.3.0)
+Requirement already satisfied: pyparsing>=3 in /usr/local/lib/python3.12/site-packages (from matplotlib->catboost) (3.3.2)
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.0.1[0m[39;49m -> [0m[32;49m26.2.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@94de41bfcdae:/workspace# cat <<EOF > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from catboost import CatBoostRegressor
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('/app/data/train.csv')
+[?2004l[?2004h> val = pd.read_csv('/app/data/val.csv')
+[?2004l[?2004h> test = pd.read_csv('/app/data/test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> X_train = train.drop('target', axis=1)
+[?2004l[?2004h> y_train = train['target']
+[?2004l[?2004h> 
+[?2004l[?2004h> X_val = val.drop('target', axis=1)
+[?2004l[?2004h> y_val = val['target']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Identify feature types
+[?2004l[?2004h> cat_features = [col for col in X_train.columns if col.startswith('cat_') or col.startswith('bin_')]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Fill missing values for numerical features (though CatBoost handles NaNs)
+[?2004l[?2004h> # For simplicity, we let CatBoost handle the NaNs
+[?2004l[?2004h> 
+[?2004l[?2004h> model = CatBoostRegressor(
+[?2004l[?2004h>     iterations=1000,
+[?2004l[?2004h>     learning_rate=0.05,
+[?2004l[?2004h>     depth=6,
+[?2004l[?2004h>     eval_metric='RMSE',
+[?2004l[?2004h>     random_seed=42,
+[?2004l[?2004h>     verbose=100
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> model.fit(
+[?2004l[?2004h>     X_train, y_train, 
+[?2004l[?2004h>     eval_set=(X_val, y_val), 
+[?2004l[?2004h>     cat_features=cat_features, 
+[?2004l[?2004h>     early_stopping_rounds=50
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict
+[?2004l[?2004h> preds = model.predict(test)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Save predictions
+[?2004l[?2004h> output = pd.DataFrame({'target': preds})
+[?2004l[?2004h> output.to_csv('/app/predictions.csv', index=False)
+[?2004l[?2004h> EOF
+[?2004lpython3 solution.py
+[?2004hroot@94de41bfcdae:/workspace# python3 solution.py
+[?2004l0:	learn: 0.3874415	test: 0.3831574	best: 0.3831574 (0)	total: 85.8ms	remaining: 1m 25s
+100:	learn: 0.2630221	test: 0.2491374	best: 0.2491374 (100)	total: 2.23s	remaining: 19.8s
+200:	learn: 0.2505072	test: 0.2418330	best: 0.2418330 (200)	total: 4.47s	remaining: 17.8s
+300:	learn: 0.2434282	test: 0.2396484	best: 0.2396484 (300)	total: 6.1s	remaining: 14.2s
+400:	learn: 0.2370426	test: 0.2379719	best: 0.2379512 (398)	total: 7.52s	remaining: 11.2s
+Stopped by overfitting detector  (50 iterations wait)
+
+bestTest = 0.237235431
+bestIteration = 443
+
+Shrink model to first 444 iterations.
+[?2004hroot@94de41bfcdae:/workspace# ls -l /app/predictions.csv
+[?2004l-rw-r--r-- 1 root root 87377 Aug 29 19:16 /app/predictions.csv
+[?2004hroot@94de41bfcdae:/workspace# head -n 5 /app/predictions.csv
+[?2004ltarget
+11.559961414417534
+11.65512951452488
+11.49146354594296
+11.68556081088811
+[?2004hroot@94de41bfcdae:/workspace# wc -l /app/predictions.csv
+[?2004l4648 /app/predictions.csv
+[?2004hroot@94de41bfcdae:/workspace# 

@@ -1,0 +1,87 @@
+\section{Limits of applicability}
+\label{sec:scope}
+
+\begin{sloppypar}
+Coverage across the three systems is uneven, and the unevenness is a result
+rather than a gap. FEDOT.LLM attempts two of the ten MLAgentBench tasks not
+because runs were abandoned but because its architecture accepts tabular inputs
+only; the segmentation, multi-label vision, graph and sequence tasks are outside
+what it can express, and would remain so after substantial engineering. Its
+domain is therefore the tabular core: the eight TabReD tasks plus
+\texttt{house-price} and \texttt{spaceship-titanic}.
+\end{sloppypar}
+
+We consequently report two things separately. Head-to-head comparisons are made
+on the tabular core, where all systems ran. Tasks outside it are reported as a
+coverage analysis, with an explicit reason for each absence, whether structurally
+unsupported, run failed, or not attempted, rather than as blank cells.
+Table~\ref{tab:coverage} gives that account.
+
+\begin{table}[t]
+\centering
+\caption{Coverage and the reason for each absence; MLAB abbreviates MLAgentBench. FEDOT.LLM's absences are structural, not abandoned runs.}
+\label{tab:coverage}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccl}
+\toprule
+System & TabReD & MLAB & Reason for absences \\
+\midrule
+FEDOT.LLM    & 8/8 & 2/10  & tabular inputs only \\
+AutoDS-Tools & 8/8 & 10/10 & --- \\
+Terminus-2   & 8/8 & 10/10 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Terminus-2 used to be missing four MLAgentBench tasks. The earlier job on this
+benchmark contains six trials, all completed with no errors, and
+\texttt{identify-contrails}, \texttt{feedback}, \texttt{clrs} and
+\texttt{fathomnet} were simply never submitted. Nothing structural prevented
+them, and we have since run all four: they are public, they need no accelerator,
+and they carry the same harness as the six. The row is now full, and the four
+added tasks behave no differently from the rest.
+
+Closing that gap changed the row in a way we did not anticipate. Because the four
+tasks had to be re-run anyway, we re-ran the whole set on one job, one verifier
+and one concurrency setting, three attempts per task. Before, the row mixed six single trials
+from one job with four from another under different verifier glue, which is not
+a comparison so much as a concatenation. It is now homogeneous, and it is the first
+point in this paper at which two architectures are measured on MLAgentBench under
+conditions that are identical rather than merely similar.
+
+\input{tables/mlabhead}
+
+Read as a comparison, Table~\ref{tab:mlabhead} says what the leaderboard of
+Section~\ref{sec:ceiling} already said, on a second benchmark and with the
+conditions held rather than assumed: the multi-agent system is the more accurate
+of the two, and the open harness is the cheaper. What it adds is the size of the
+second half. Terminus-2 takes about a third of the mean wall-clock per trial and
+reaches its agent budget once in $24$ trials where AutoDS-Tools reaches it $13$
+times in $30$; it also fails to submit more often, $6$ of $24$ against $2$ of
+$24$ on these eight tasks. Neither of those is visible in a table of scores.
+
+
+\paragraph{Two tasks we could not repeat.} Of the ten MLAgentBench tasks, eight
+were re-run three times in both branches for this paper. \texttt{cifar10} and
+\texttt{imdb} were not, and the reason is measured rather than assumed. Sixteen
+attempts out of sixteen exhausted the task's own agent budget without writing a
+submission: six per branch at four concurrent trials, and four more at two, so
+contention is not the explanation. The agent does start---the analyst, planner
+and researcher reports appear in its working directory within the first
+minute---after which a single Python process holds about eight cores
+continuously. It is training, not looping. What separates these two from the
+rest is that they are the heaviest to train and are also given half the budget,
+$3600$\,s where five other tasks get $7200$, while the task image installs the
+CUDA build of PyTorch by default and the task declares no accelerator, so the
+build falls back to the CPU on our hardware. The five-epoch starter script
+finishes on a CPU; nothing that improves on it does. These two tasks are
+therefore omitted from every table that reports three attempts per cell, rather
+than carried at $n=1$ beside rows they cannot be compared with; the eight
+remaining tasks are reported at three attempts. This is a limit of the hardware
+we had, not of the benchmark: on a machine with an accelerator both rows should
+repeat like the others.
+
+Read this way, the coverage table is itself a finding: the architecture that
+performs worst on the tasks it can attempt is also the one that can attempt the
+fewest, and both properties follow from the same design decision.

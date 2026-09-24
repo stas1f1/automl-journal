@@ -1,0 +1,86 @@
+[?2004hroot@091b4f51f880:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@091b4f51f880:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@091b4f51f880:/workspace# ls -la /app/data
+[?2004ltotal 673704
+drwxr-xr-x 2 root root      4096 Aug 27 21:10 .
+drwxr-xr-x 3 root root      4096 Aug 28 15:18 ..
+-rw-rw-r-- 1 root root      3119 Aug 27 21:10 schema.json
+-rw-rw-r-- 1 root root  89024474 Aug 27 21:10 test.csv
+-rw-rw-r-- 1 root root 490188112 Aug 27 21:10 train.csv
+-rw-rw-r-- 1 root root 110629016 Aug 27 21:10 val.csv
+[?2004hroot@091b4f51f880:/workspace# pip install xgboost pandas numpy scikit-learn
+[?2004lRequirement already satisfied: xgboost in /usr/local/lib/python3.12/site-packages (2.1.4)
+Requirement already satisfied: pandas in /usr/local/lib/python3.12/site-packages (3.0.5)
+Requirement already satisfied: numpy in /usr/local/lib/python3.12/site-packages (2.5.2)
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.12/site-packages (1.9.0)
+Requirement already satisfied: nvidia-nccl-cu12 in /usr/local/lib/python3.12/site-packages (from xgboost) (2.31.2)
+Requirement already satisfied: scipy in /usr/local/lib/python3.12/site-packages (from xgboost) (1.18.1)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: joblib>=1.4.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (1.5.3)
+Requirement already satisfied: narwhals>=2.0.1 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (2.25.0)
+Requirement already satisfied: threadpoolctl>=3.5.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (3.6.0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.0.1[0m[39;49m -> [0m[32;49m26.2.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@091b4f51f880:/workspace# cat <<EOF > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from xgboost import XGBRegressor
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('/app/data/train.csv')
+[?2004l[?2004h> val = pd.read_csv('/app/data/val.csv')
+[?2004l[?2004h> test = pd.read_csv('/app/data/test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Separate target
+[?2004l[?2004h> y_train = train['target']
+[?2004l[?2004h> y_val = val['target']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Remove target from features
+[?2004l[?2004h> X_train = train.drop(columns=['target'])
+[?2004l[?2004h> X_val = val.drop(columns=['target'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Basic preprocessing: fill numerical NaNs with median
+[?2004l[?2004h> # Since features are prefixed, we can easily identify them
+[?2004l[?2004h> num_cols = [col for col in X_train.columns if col.startswith('num_')]
+[?2004l[?2004h> cat_cols = [col for col in X_train.columns if col.startswith('cat_') or col.startswith('bin_')]
+[?2004l[?2004h> 
+[?2004l[?2004h> for col in num_cols:
+[?2004l[?2004h>     median = X_train[col].median()
+[?2004l[?2004h>     X_train[col] = X_train[col].fillna(median)
+[?2004l[?2004h>     X_val[col] = X_val[col].fillna(median)
+[?2004l[?2004h>     test[col] = test[col].fillna(median)
+[?2004l[?2004h> 
+[?2004l[?2004h> # For categorical/binary, treat them as categories or fill NaNs
+[?2004l[?2004h> for col in cat_cols:
+[?2004l[?2004h>     X_train[col] = X_train[col].fillna(-1)
+[?2004l[?2004h>     X_val[col] = X_val[col].fillna(-1)
+[?2004l[?2004h>     test[col] = test[col].fillna(-1)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize and train XGBoost
+[?2004l[?2004h> model = XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42)
+[?2004l[?2004h> model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict
+[?2004l[?2004h> preds = model.predict(test)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Save to CSV
+[?2004l[?2004h> submission = pd.DataFrame({'target': preds})
+[?2004l[?2004h> submission.to_csv('/app/predictions.csv', index=False)
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@091b4f51f880:/workspace# python3 solution.py
+[?2004l[?2004hroot@091b4f51f880:/workspace# ls -l /app/predictions.csv
+[?2004l-rw-r--r-- 1 root root 406031 Aug 29 19:11 /app/predictions.csv
+[?2004hroot@091b4f51f880:/workspace# head -n 5 /app/predictions.csv
+[?2004ltarget
+2.310507
+3.349725
+2.2683225
+2.9645514
+[?2004hroot@091b4f51f880:/workspace# wc -l /app/predictions.csv
+[?2004l41649 /app/predictions.csv
+[?2004hroot@091b4f51f880:/workspace# 

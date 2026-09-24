@@ -1,0 +1,161 @@
+\section{Where architecture stops}
+\label{sec:ceiling}
+
+Table~\ref{tab:leaderboard} places the three systems that ran on the official
+TabReD splits into the benchmark's own reference table, as if they were methods.
+Table~\ref{tab:normalized} restates the same runs on a per-task normalised scale,
+where $0$ is the weakest and $1$ the strongest of the eighteen published
+baselines.
+
+% нормированная таблица идёт первой намеренно: она маленькая и встаёт на
+% ближайшую страницу, тогда как leaderboard занимает полосу целиком и
+% вытесняет всё, что объявлено после него
+\input{tables/normalized}
+\input{tables/leaderboard}
+
+\paragraph{Architecture is worth about half the range.}
+With the backbone held fixed, the normalised mean of Table~\ref{tab:normalized}
+moves from $0.26$ for the rigid pipeline to $0.85$ for the multi-agent system as
+deployed, a spread of $0.59$,
+with the open harness at $0.72$ between them; in average rank, $18.2$ against
+$6.6$ among twenty-one methods, with the open harness at $11.4$. Part of that
+spread is prescription rather than architecture: the multi-agent system without
+its instruction layer scores $0.75$, so the span attributable to architecture
+alone is $0.49$. We use the smaller figure whenever the claim is about
+architecture and the larger only where the systems are compared as they ship.
+
+\paragraph{But it does not reach competent practice.}
+Tuned XGBoost sits at $0.87$ (rank $5.1$) and the strongest published method at
+$0.95$ (rank $4.1$). The best of our systems reaches $0.85$ at rank $6.6$, which
+places it inside the gradient-boosting band rather than below it: LightGBM is at
+$0.85$ and CatBoost at $0.80$, so the multi-agent system is level with the first,
+ahead of the second, and short of XGBoost by $0.02$. The honest statement is a
+narrower boundary than the usual one: \emph{with an open 31B model, the best
+architecture we tested matches the middle of competently tuned gradient boosting
+on real-world tabular tasks under temporal shift, but not its best member, and no
+architecture we tested approaches the strongest published method.} We state it
+plainly because the comparison is usually made against defaults, where the same
+systems would appear to win outright.
+
+\paragraph{The ordering is not monotonic in either direction.}
+The system that ranks highest is neither the most nor the least constrained.
+Read as it stands the relationship is an inverted U---rigid pipeline $0.26$,
+multi-agent $0.85$, open harness $0.72$---but each system enters in the
+configuration it ships in, and those differ in more than architecture: the
+multi-agent row carries its prescribed-knowledge layer and an image provisioned
+with the libraries that layer names, while the open harness receives the task
+statement alone in the stock image. Two arms separate those strands, and both
+have now been run. Provisioning alone does nothing
+(Section~\ref{sec:matched}); prescription does almost everything. With its layer
+removed---the \emph{neither} column of Table~\ref{tab:grid}, same tasks, same
+image---the multi-agent system scores $0.75$ against $0.85$ as deployed, with the
+open harness at $0.72$. The ordering survives the separation but the distance
+does not: $0.13$ as deployed becomes $0.03$ once neither system carries a
+prescription, so on these eight tasks the layer is worth roughly three times the
+architectural difference between the two. Neither the comparison with the rigid
+pipeline at $0.26$ nor the gap to XGBoost is affected.
+
+\subsection{Provisioning alone does nothing}
+\label{sec:matched}
+
+We ran the open harness on the image built for the multi-agent system, same
+eight tasks, three attempts each. Seven of the eight land inside this system's
+own noise floor---relative differences from $+0.08\%$ to $-0.93\%$, with four of
+them at or below $0.08\%$ and several reproducing the stock-image attempts to
+every digit printed. The reason is in the traces rather than the metrics: across all twenty-four
+trials the agent named none of the three libraries the enriched image
+pre-installs. It went to gradient boosting by hand, as on the stock image, where
+the library was already reachable because it had installed it itself.
+Provisioning without a text that points at it changes the container and not the
+run.
+
+That the enriched image was itself defective makes the point sharper. It
+installed the prescribed libraries on a base without the OpenMP runtime they link
+against, so LightGBM imported cleanly and then failed inside
+\texttt{fit\_predict} as a broken joblib worker pool---a failure that says
+nothing about OpenMP on its face. Forty-five trials across the two systems met
+it; forty-five diagnosed it, reasoned from the dead worker pool to the missing
+\texttt{libgomp.so.1}, installed it and continued. None abandoned the library and
+none reported the repair. The defect is ours and is recorded as a threat
+(Section~\ref{sec:threats}); the behaviour is what belongs here. Provisioning is
+inert as a treatment not because these agents ignore the environment but because
+they rebuild it, and a system that will install what it needs cannot be studied
+by installing it in advance.
+
+The one exception is \texttt{sberbank-housing}, at $-3.49\%$ with a spread of
+$0.017$ against $0.000$ to $0.001$ elsewhere: two attempts reproduce the stock
+values exactly and the third trained a thousand boosting rounds without early
+stopping, which under temporal shift cost that attempt $12\%$ of its RMSE and the
+three-attempt mean the $3.49\%$ above. That is
+the agent's own lapse and the subject of Section~\ref{sec:mechanism}.
+
+\paragraph{The rigid pipeline sits at the bottom of the leaderboard.}
+FEDOT.LLM's normalised mean is $0.26$ and its average rank $18.2$ of $21$, below
+plain linear regression at $0.28$ and rank $18.6$: the most constrained of the
+three systems, driving a mature AutoML backend, does not recover the score of the
+simplest reference in the table. Its metrics reached us rounded to two decimals,
+so we checked how much of the placement is an artefact of that rounding: sweeping
+every task independently to both ends of its interval moves the normalised mean
+between $0.05$ and $0.47$ and the rank between $20.3$ and $16.6$. The ordering
+against linear regression is therefore \emph{not} resolvable at the precision
+available to us and we rest nothing on it. What survives the whole interval is
+what we do use: even at its most favourable corner the rigid pipeline stays
+$0.25$ of the normalised range below the open harness, $0.37$ below the
+multi-agent system, and below every tuned gradient-boosting baseline. We report
+this about one of our own systems deliberately---it is the lower anchor of the
+architectural axis, and its position is what gives the axis its length. Full
+precision would need the original job artefacts of a system we could not rebuild,
+so we could neither re-run it nor re-score its submissions.
+
+\input{tables/cost}
+
+\paragraph{Cost, and what actually binds.}
+Table~\ref{tab:cost} reports the Harbor telemetry behind these results.
+
+Token spend is not the binding constraint at this scale: a whole TabReD trial
+costs the open harness under a cent and the most expensive row is under two. What
+separates the systems from the tuned baselines is training compute and search,
+not the price of the backbone. Nor do the orderings of accuracy and cost agree,
+and they disagree by different amounts in different columns. On the common
+adapter the higher-ranking system costs $1.07\times$ the dollars of the open
+harness and $1.23\times$ its input tokens, which is nothing, against
+$2.5\times$ its output tokens and $8.7\times$ its wall-clock, which is not.
+Accuracy is bought here with the clock rather than with the bill.
+
+The price of the layer is better read off the crossed cells than off the two
+earlier AutoDS-Tools rows. Those two differ only in the instruction file and put
+the layer at $+48\%$ input tokens, $+26\%$ output and $+43\%$ dollars, but they
+ran on the earlier preparation and on an image already carrying the libraries the
+prescription names. On the common adapter the money goes the other way and only
+the time agrees: Table~\ref{tab:grid} has the bill falling from $0.0086$ to
+$0.0074$ dollars a trial while the median trial rises from $15.4$ minutes to
+$38.9$. Naming a library shortens the search and lengthens the fit, so the sign
+of its cost depends on which resource is counted
+(Section~\ref{sec:mechanism}).
+
+What binds is the clock. In our re-run, twenty-four trials under the benchmark's
+own $3600$\,s ceiling, agent wall-clock had a median of $38.9$ minutes and a
+minimum of $18.7$; four trials finished within fifteen minutes of the ceiling and
+four more were cut by it. A killed trial and a lost trial are not the same thing:
+three of the four had already written a submission and are scored like any other,
+and one had not, so the ceiling truncated the work in one trial of six and
+destroyed the result in one of twenty-four. The open harness on the same tasks
+and ceiling has a median of $3.4$ minutes and a maximum of $9.3$. We report the
+lost trial as a failure rather than a zero, since a timeout is a property of the
+budget and not a measurement of the model (Section~\ref{sec:threats}), and note
+that because truncation falls on the slowest tasks it is not random with respect
+to the result. An architecture averaging forty-one minutes where another averages
+four is buying its accuracy partly with a margin it does not have.
+
+The hour binds rather than the hardware, which a repeat shows. We ran this arm
+twice, on a twelve-core workstation at concurrency two and on an eighteen-core
+server at concurrency four: medians $37.4$ and $38.9$ minutes, so doubling the
+parallel load and changing the machine moved the distribution by a minute and a
+half. What moved was the loss rate, two trials of twenty-four against one,
+because a faster machine leaves more agents with something on disk when the clock
+stops. A timeout rate is a property of a deployment, not of a system. The
+wall-clock column should be read accordingly: for the earlier jobs it is
+end-to-end time divided by trials and concurrency, so it absorbs environment
+builds and queueing, and the jobs did not share a machine. It is reliable as an
+order of magnitude and as a within-pair comparison, not as a benchmark of
+throughput.

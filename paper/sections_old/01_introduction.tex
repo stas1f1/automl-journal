@@ -1,0 +1,99 @@
+\section{Introduction}
+\label{sec:intro}
+
+Automated machine learning has been reshaped by large language models. Systems
+built on them plan experiments, write and repair code, read execution logs, and
+interpret their own results, capabilities that classical AutoML frameworks,
+which search a fixed space of pipelines, never had. The design space of such
+systems is now large and largely uncharted: implementations differ in how much
+autonomy they grant the model, how they inject knowledge about libraries and
+methods, and how tightly they constrain the sequence of actions.
+
+What has not been measured is how much any of this is worth. Papers in this area
+typically introduce one system and report that it improves on a previous one,
+with the backbone model, the scaffold, and the evaluation protocol all changing
+at once. Two consequences follow. Comparisons across papers cannot separate the
+contribution of the architecture from that of the model, and, more
+uncomfortably, agentic systems are rarely measured against the baseline a
+competent practitioner would reach for. Where a tuned gradient boosting model
+appears at all, it usually appears untuned.
+
+This paper isolates the architectural axis. We fix the backbone to a single open
+31B-parameter model and vary only the surrounding system across three points of
+the design space:
+
+\begin{itemize}
+  \item \textbf{FEDOT.LLM}, a rigid pipeline in which the model interprets the
+        task and configures a fixed AutoML backend, with code generated from
+        templates that carry fixed input/output contracts;
+  \item \textbf{AutoDS-Tools}, a multi-agent system of six specialised agents
+        communicating through structured reports, with a shared toolkit and
+        broad freedom of action;
+  \item \textbf{Terminus-2}, an open harness that gives the model a shell, a
+        working directory and an execution loop, and prescribes nothing else.
+\end{itemize}
+
+All three are executed inside a common environment that records every attempt,
+error, token and unit of cost, and all are evaluated on the official temporal
+splits of TabReD~\citep{rubachev2024tabred}, a benchmark of real-world tabular
+tasks with distribution shift, against the eighteen expert-tuned reference
+methods published with it. Because those references are Optuna-tuned and
+averaged over fifteen seeds, they constitute a ceiling that reflects competent
+practice rather than a default configuration.
+
+\paragraph{Contributions}
+\begin{enumerate}
+  \item \textbf{A measurement of the ceiling.} Under an identical backbone, the
+        architectures span $0.26$ to $0.85$ of the range defined by the published
+        baselines, while tuned XGBoost sits at $0.87$ and the best published
+        method at $0.95$. The strongest architecture we tested is level with
+        tuned LightGBM at $0.85$ and ahead of tuned CatBoost at $0.80$, but does
+        not close the gap to XGBoost, from which it is $0.02$ short. We state this as a boundary rather than a defeat: it
+        delimits what scaffolding can and cannot buy at a given model scale.
+  \item \textbf{A non-monotonic relationship, and a mechanism for it.}
+        Performance does not increase with architectural weight, and it does not
+        decrease with it either. The most constrained system ranks near the
+        bottom of the leaderboard, and the highest-ranking of the three is
+        neither extreme. We argue that constraint pays only where it removes a
+        decision the weak model reliably gets wrong, and costs elsewhere, and we
+        give direct evidence from an ablation whose sign flips between task
+        families---though the two directions carry very unequal weight, the
+        cost being total on three tasks of eight and the benefit defensible on
+        one. Both arms that separate architecture from
+        prescription and provisioning have now been run: provisioning is worth
+        nothing, prescription is worth three times the architectural gap between
+        the two agentic systems, and the ordering survives both
+        (Section~\ref{sec:ceiling}).
+  \item \textbf{A separation of two axes usually conflated.} What the literature
+        treats as one ``knowledge injection'' intervention is at least two:
+        prescribing which class of tool to use (\Ktool) and prescribing how to
+        train and validate (\Kdisc). We show by direct measurement of the
+        instruction layer that the tool prescription is between $9.1\%$ and
+        $26.0\%$ of the text it gives its name to, that the two halves are
+        sub-additive rather than complementary on either aggregation we can
+        form---and on the normalised scale the tool half alone outscores both
+        halves together---and, by reading the traces of the
+        system that receives no prescription, that on tabular data the tool
+        half prescribes what the model already chooses unaided. Together these
+        offer an explanation for the inconsistent effects reported for aggregate
+        knowledge and memory ablations.
+\end{enumerate}
+
+\paragraph{Relation to the neutral-scaffold assumption.}
+Terminal-Bench 2.0 introduces Terminus~2 as a deliberately minimal scaffold, a
+single tool and a headless terminal, built to mitigate the biases of richer agent
+scaffolds so that a leaderboard over it reads as a comparison between
+\emph{models}~\citep{merrill2026terminalbench}. That reading is only sound if
+the scaffold contributes little. It is already under pressure in the coding
+domain, where holding the model fixed and swapping the harness moves aggregate
+score by more than twenty points~\citep{harnessbench2026} and tokens per solved
+task by up to a factor of forty~\citep{scaffoldeffect2026}. We ask the question
+where a strong non-agentic reference exists and can calibrate the answer: with
+the backbone held constant, the three systems as they ship span $0.59$ of the
+range defined by eighteen expert-tuned baselines, and $0.49$ of it once the
+prescribed-knowledge layer is removed from the system that carries one, so that
+what remains is architecture alone. Holding the architecture fixed and swapping
+the backbone instead, across an elevenfold spread in price, moves it by at most
+$0.24$ --- and that larger figure rests
+on a single task, without which it is $0.07$. A scaffold is never neutral; on this domain it is the dominant
+term of the two.

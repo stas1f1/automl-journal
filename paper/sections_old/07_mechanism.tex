@@ -1,0 +1,333 @@
+\section{Why more structure is not better}
+\label{sec:mechanism}
+
+The ordering in Section~\ref{sec:ceiling} does not follow architectural weight:
+the most constrained system performs worst and the best of the three sits between
+the extremes. Quantity of structure does not predict outcome. We propose a
+sharper statement, which the data can test:
+
+\begin{quote}
+Constraint pays exactly where it removes a decision the weak model reliably
+gets wrong. Everywhere else it removes exploration the model could have
+recovered from.
+\end{quote}
+
+Table~\ref{tab:ktool} ablates the prescribed-knowledge layer on AutoDS-Tools over
+MLAgentBench: both branches run the identical six-agent architecture and differ
+only in the instruction file. The layer arrives as one block here, so the table
+isolates the layer rather than \Ktool{} alone (Section~\ref{sec:axis}); we split
+it into halves on TabReD in Section~\ref{sec:grid}.
+
+\input{tables/ktool}
+
+Measured three times per cell, the effect separates the tasks into two groups of
+very unequal weight. The costly side is unambiguous: on \texttt{clrs} the
+untreated branch scores $0.3909$ pointer accuracy over three attempts while the
+treated branch submits nothing in three, every attempt exhausting the task's own
+agent budget; on \texttt{fathomnet} the same, $0.1435$ against nothing; on
+\texttt{feedback}, MCRMSE $0.8261$ with a best attempt of $0.5403$, again against
+nothing. Three tasks of eight lose their entire result to the prescription rather
+than a fraction of it.
+
+The paying side is thinner than the shape of the split suggests. Only
+\texttt{ogbn-arxiv} gains by a margin clearing the spread of either branch,
+$0.3866$ to $0.5069$. \texttt{identify-contrails} moves the same way, $0.0022$ to
+$0.0478$, but both figures sit near zero on a metric whose useful range does not,
+so the normalised $+0.96$ in Table~\ref{tab:ktool} is an artefact of dividing by
+a small number and we do not read it as a result.
+\texttt{spaceship-titanic} and \texttt{house-price} are level within their own
+spreads, and \texttt{amp-parkinsons} moves against the prescription, SMAPE
+$62.28$ without it against $86.46$ with it. Prescription is an override; here its
+cost is large, repeatable and on three tasks total, while its benefit is
+defensible on one of eight. This benchmark demonstrates the costly half of the
+mechanism. FEDOT.LLM is the limiting case, permanently in override mode, which is
+consistent with its position at the bottom of Table~\ref{tab:leaderboard}.
+
+\subsection{Splitting the layer}
+\label{sec:grid}
+
+On TabReD the two halves are separately switchable. Table~\ref{tab:grid} crosses
+them: four cells, twenty-four trials each, one image, one concurrency setting,
+one machine, differing in the instruction file and nothing else.
+
+\input{tables/grid}
+
+Both halves together beat the untreated cell on all eight tasks, so on this
+family the layer does no harm. That is also the last thing to survive
+aggregation. Averaged over the eight tasks the library half is worth $+0.69\%$,
+the discipline half $+0.12\%$, and their interaction $-0.09\%$: one intervention
+and one piece of ballast.
+\begin{sloppypar}
+Two tasks carry almost all of it, \texttt{ecom-offers} moving $+3.68\%$ under the
+library half alone and \texttt{homecredit-default} $+0.79\%$, while none of the
+other six moves by more than $0.64\%$ and five of them stay under half a
+percent in either direction---at or below what the same cell reproduces across
+its own three attempts.
+\end{sloppypar}
+
+The cost columns do not run parallel. Prescribing a library shortens the agent's
+search and lengthens its fitting: the median trial goes from $15.4$ minutes
+untreated to $30.4$ with the library named, while the bill falls from $0.0086$ to
+$0.0074$ dollars. Prescribing discipline does the opposite, adding $11\%$ to the
+bill and cutting the median trial to $9.7$ minutes. Which of these is cheap
+depends on which budget is scarce, and Section~\ref{sec:ceiling} has already
+shown that here it is the clock.
+
+\subsection{What the unprescribed system chooses on its own}
+\label{sec:spontaneous}
+
+If prescription pays only where the model's default is wrong, then on a family
+where the default is already right it should be worth close to nothing. The
+terminal traces of the open harness test this without an ablation. Its
+instruction names no library---task, file layout, output format, train and
+validate any model of your choosing---and it fitted a gradient-boosting model on
+every task in every attempt: LightGBM in twenty-three of the twenty-four trials
+of Section~\ref{sec:matched} and XGBoost in the remaining one, and on the stock
+image it installed LightGBM itself on six of the eight tasks. That is the family
+the tool prescription would have named, so on tabular data the prescription is
+not an override but a restatement of the default.
+
+The same traces explain the ceiling. The configuration is hand-written and
+near-identical across tasks and attempts: $1000$ estimators in all twenty-four
+trials, learning rate $0.05$ in twenty-three, early stopping on a holdout in
+twenty-three, $31$ leaves in the nineteen that set a leaf count. No search
+appears in any trace---no Optuna, no grid, no randomised search, no
+cross-validated sweep. The gap to the published gradient-boosting rows is
+therefore not a gap in tool selection, which the harness gets right unaided, but
+a gap in search: the baselines are Optuna-tuned over fifteen seeds, the agent
+writes one plausible configuration and stops. Telling a weak model \emph{which}
+tool to use is worth a great deal where it would otherwise choose badly and
+nothing on tabular data; what is left unaddressed there---search over the chosen
+tool---is what no system in our comparison performs. The per-task extraction is
+released with the paper.
+
+\subsection{And which parts of the discipline it skips}
+\label{sec:discipline}
+
+Table~\ref{tab:grid} says the discipline half is worth nothing on the score. It
+does not say the half does nothing. Read for behaviour instead of accuracy, the
+same four cells show a treatment landing exactly as written. Three clauses---%
+compare against a trivial predictor, allocate the time budget before starting,
+keep the best variant by validation rather than the last trained---leave a
+signature in no trial of either cell where the discipline half is off and in
+every trial of both cells where it is on. That is as clean a manipulation check
+as this measurement allows.
+
+Two further clauses separate nothing, and both show why single-arm readings
+mislead. The submission is inspected in twenty-two of twenty-four trials with no
+prescription at all: the multi-agent system does this unbidden, and contrasting
+it with the open harness, which leaves no trace of that clause in any of its
+twenty-four trials, would credit the text with a habit belonging to the
+architecture. Early stopping runs the other way, universal without the library
+and invisible with it, because the prescribed library performs it internally and
+does not report it. A signature is evidence that a behaviour reached the trace,
+not proof that it happened.
+
+So the discipline block moves three behaviours from never to always and moves the
+score by $0.12\%$. Prescribed method is not inert as instruction; it is inert as
+intervention, on a family where the agent's untutored defaults were already
+adequate. One connection survives with its attribution corrected: the clause the
+open harness never leaves a trace of is the instruction to inspect the submission
+before finishing, and the failure recorded in Section~\ref{sec:threats}---that
+harness submitting one constant label for every row of a $25{,}000$-row test set
+for exactly $0.5000$---is the failure that clause exists to catch. An observed
+failure and a measured omission are the same fact. Supplying the clause is not
+sufficient to make it pay: on TabReD the multi-agent system inspects its
+submission in every trial and scores no better for it, because there was no
+degenerate submission to catch.
+
+\subsection{The same layer in another architecture}
+\label{sec:kdiscterm}
+
+Whether either half is worth anything in general is a different question, and the
+two systems are far enough apart to answer it. The layer is composed on the host
+and reaches only its own agent, so the only way to hand the same text to the open
+harness is to put it in the task: we appended the byte-identical halves to each
+instruction file and ran twenty-four trials per cell on one machine, one image,
+one backbone, one concurrency setting. Every manipulation check passes---the half
+that should be present appears in twenty-four trajectories of twenty-four, the
+half that should be absent in none.
+
+\input{tables/kdiscterm}
+
+Table~\ref{tab:kdiscterm} gives the four crossed cells and a fifth, trimmed control. Accuracy is not where the answer
+is. In the discipline cell every value lands
+inside the untreated arm's own spread, two reproduce an untreated value to every
+digit, and the mean over the seven tasks that return a number is $-0.05\%$, an
+order of magnitude inside this system's $0.94\%$ noise floor.
+
+What moves is whether a trial produces an answer at all. Trials ending without a
+submission go from two of twenty-four untreated to thirteen with the discipline
+half and nineteen of twenty-two with the library half, the latter at
+$p=9.6\times10^{-8}$. Not one is a timeout: every one ends with the agent calling
+the tool that declares the task finished, which is also how both untreated losses
+end. The layer introduces no new failure mode; it makes the existing one common.
+
+The failure is one of patience rather than method. The agent launches a fit in
+the foreground, sees a terminal that has stopped producing output because its own
+job still holds it, concludes that the reporting is broken rather than that the
+work is unfinished, and marks the task complete---saying so in as many words in
+five of the thirteen discipline-cell losses. The trials that survive the library
+half are not better reasoners but more stubborn: $228$, $267$ and $355$ agent
+steps over $46$ to $57$ minutes, against fourteen steps and ten minutes for the
+median trial in that cell.
+
+Two of the block's seven sections cause this, and deleting them checks it.
+\emph{Training discipline} offers a hundred epochs as a sane starting budget and
+tells the agent to raise it and train again rather than stop; \emph{Time budget
+management} instructs it to assume it has ``hours, not minutes'' and warns that a
+training phase finishing ``within a couple of minutes'' signals undertraining.
+The untreated median trial here is two and a half minutes and is not
+undertrained: these are gradient-boosted trees on tabular data, and the block was
+written for convolutional and encoder models. Deleting those two sections and
+keeping the other five restores everything. Not one trial is lost of twenty-four,
+against thirteen with the full block ($p=2.6\times10^{-5}$) and two with no block
+at all, a difference from the untreated cell that is not detectable ($p=0.49$).
+The median trial returns to seven steps and three minutes, the bill to less than
+a sixth, and the whole sweep from one hour forty-six to twenty-six minutes.
+
+On the library side the same assumption arrives as a fact rather than an
+instruction---the prescribed library is simply slow---which produces the sharpest
+cell in the design and its strangest pairing. The library half alone loses
+nineteen trials of twenty-two; adding the discipline half, which alone costs
+thirteen of twenty-four, brings the loss down to eleven of twenty-four
+($p=0.0055$). The instruction that harms by itself protects in combination, and
+the mechanism is legible: what the discipline half tells this harness is that a
+long-running job is normal, which is exactly what the library half requires it to
+believe.
+
+The multi-agent system met none of this: the same four cells inside its own
+architecture lost respectively none, none, none and one trial of twenty-four
+(Section~\ref{sec:grid}). Whatever absorbs the instruction there---a fixed
+workflow, a repair loop, a planner that owns the schedule---is what makes the
+prescription survivable, and none of it is part of the prescription. This is the
+sharper form of the paper's thesis. Measured inside the system it ships with, the
+layer is worth $+0.72\%$ and costs nothing; the same bytes handed to a different
+architecture leave the answers untouched and cost most of them. A layer that has
+only ever been measured in one architecture has not been measured. The practical
+consequence is smaller than that framing suggests: on the discipline side the
+text was two paragraphs away from being portable, and finding which two took one
+cell of twenty-four trials costing eleven cents. What does not port is not the
+knowledge but the assumption smuggled in beside it.
+
+\paragraph{Two cautions.} Where the library cells do return a number it is
+better, $+1.21\%$ and $+1.13\%$ against the untreated cell, in the same direction
+and of the same order as the $+0.69\%$ the library half is worth inside the
+multi-agent system; but those figures average over the minority of trials that
+survived, and survival in those cells is exactly persistence, so we report the
+direction and suppress any stronger reading. Separately, several cells reproduce
+another system's value to sixteen digits. That is not two architectures
+converging under a shared prescription: \texttt{sberbank-housing} returns
+$0.2516404543658208$ in all three untreated multi-agent attempts and two of three
+untreated open-harness attempts, with no prescription anywhere. These tasks are
+deterministic given a library and its defaults, so any two runs reaching the same
+call reach the same number, and the prescription changes only which call that is;
+the treated cells agree with each other on $0.2514574079401016$. Repeated
+attempts agreeing to every digit are therefore not independent samples of an
+agent, and the noise floors of Section~\ref{sec:design} measure library
+determinism as much as agent stability.
+
+\subsection{What a different backbone changes}
+\label{sec:modelaxis}
+
+Table~\ref{tab:modelaxis} varies the model: one smaller of the same generation
+and one stronger from another family, under both systems, with tasks, image,
+concurrency and machine unchanged.
+
+\input{tables/axis}
+
+Accuracy barely moves. Median change against each system's own reference row is
+$-0.06\%$ and $-0.54\%$ for the open harness and $-0.09\%$ and $-0.02\%$ for the
+multi-agent system, against a bill varying elevenfold across the same rows. On
+\texttt{cooking-time} two different backbones under the open harness produced
+predictions identical to sixteen digits while deliberating differently: one tried
+XGBoost along the way, the other went straight to LightGBM, and both ended at the
+same call with the same defaults. The backbone changes the deliberation, not the
+artefact.
+
+On the normalised scale of Section~\ref{sec:ceiling} the whole backbone axis
+spans $0.24$ under the open harness and $0.04$ under the multi-agent system,
+against the $0.49$ separating the three architectures at a fixed backbone once
+prescription is taken out, or $0.59$ with the systems as they ship. The larger of
+the two is not a broad effect either: of that $0.24$, $0.30$ comes from
+\texttt{sberbank-housing} alone and the remaining seven tasks move the mean the
+other way by $+0.07$. On the architecture-only figure, architecture is the larger
+term by a factor of two against the worse-behaved backbone axis and twelve
+against the other.
+
+Where accuracy does move it moves both ways, on the hinge this section is about:
+a stronger backbone exercises more discretion, and discretion departs from the
+gradient-boosting default. On \texttt{ecom-offers} that departure produced the
+best ROC-AUC anywhere in this paper, $0.627$ against $0.554$--$0.569$ for the
+reference model; on \texttt{sberbank-housing} the same departure to a random
+forest cost $46\%$ of RMSE. Prescription and backbone are different levers on one
+hinge: whether the default being overridden was right to begin with.
+
+Reliability separates the two systems, in opposite directions. Under the open
+harness, trials returning no metric fall from six of twenty-four to two to none
+as the backbone strengthens. Under the multi-agent system they are lowest at the
+model the system was built against and rise on both sides, from one of
+twenty-four at the reference to six of twenty-four below it and one of the eight
+trials we could afford above it, with trials cut at the time limit moving the
+same way: seventeen per cent at the reference, twenty-nine below, fifty above.
+The upper point rests on those eight trials and carries a direction rather than
+a rate. A
+stronger model does not make that architecture finish sooner; it gives the six
+agents more to say inside a fixed hour. When the binding constraint is the clock,
+a better backbone buys nothing the clock will let the system deliver.
+
+Two cautions. The loss rate is partly a property of the deployment: the same
+reference model lost two trials of twenty-four here and none in the matched arm
+of Section~\ref{sec:matched}, which ran on a different machine at half the
+concurrency, so only the within-deployment comparison is safe and that is what
+the table reports. And the axis has a floor we found by hitting it. Two models
+one generation older returned nothing usable: the smaller emitted tool calls with
+empty argument objects, the larger wrote a working pipeline but left its
+submission in the wrong directory. Neither is a shortfall in accuracy; both are a
+failure to produce a measurement. Below some level of capability the question
+this axis asks stops having an answer, and that level is above what a parameter
+count would suggest.
+
+\subsection{Execution friction as a mediator}
+
+AutoDS-Tools contains a repair loop, invoked when execution fails. It is part of
+the system and active in both branches, but it does not fire equally often. The
+count below is the one part of this section still taken from the earlier pair of
+jobs---eighteen tasks across the two benchmarks at one attempt per cell, on the
+earlier data preparation---because the repair loop was not instrumented in the
+repeats; we report it as a direction and not as an effect size. Across those 36
+runs it was invoked 18 times with tool prescription against 12
+without, in 9 of 18 runs against 8 of 18. The imbalance concentrates where the
+prescription pushes hardest---4 invocations against 0 on \texttt{clrs} and 3
+against 0 on \texttt{amp-parkinsons}, both cases where the agent is steered to a
+specialised library whose API it then fails on---with the reverse occurring at
+smaller magnitude, 0 against 2 on \texttt{spaceship-titanic} and 3 against 4 on
+\texttt{imdb}.
+
+Read as a mediator rather than noise, this quantifies the cost side. Prescription
+raises execution friction, and its net effect is positive only where the
+prescribed tool is enough better to repay it. It also means the effect we measure
+is that of prescription \emph{as delivered by a system able to recover from the
+errors prescription causes}; in a harness without a repair loop the losses would
+plausibly be larger. This also explains the disagreement in the literature noted
+in Section~\ref{sec:related}: if ``knowledge injection'' bundles an override that
+helps with one that hurts, and the mix of task families differs between studies,
+aggregate ablations will report inconsistent and sometimes null effects for
+reasons unrelated to the systems compared.
+
+\paragraph{What the losing tasks were told, and what they did.} The trial
+artefacts name the clause responsible. The discipline block instructs the agent
+not to stop after ``an arbitrary small budget (5 or 15 epochs is almost always
+badly undertrained)'' and offers ``$\sim 100$ epochs'' as a starting point. On
+\texttt{clrs} the untreated branch chose $5$, $10$, $20$ and $30$ epochs over its
+run---exactly the range the clause forbids---and reached $0.3909$ pointer
+accuracy, taking $92$ minutes of a $120$-minute budget on one attempt and running
+the budget out entirely on the other two while still submitting, at $0.4118$ and
+$0.4404$. The treated branch submitted nothing in three attempts. A branch that
+already consumes most of the budget at $5$ to $30$ epochs cannot also honour a
+prescription calling those figures undertrained and naming a hundred. The
+instruction is not wrong as advice; it is written without reference to the budget
+the task grants, and on this task the two are incompatible. We cannot read the
+treated traces directly---the agent is killed at the ceiling before it writes
+one, itself a small piece of evidence---so what we report is the untreated
+configuration, the clause, and the outcome.

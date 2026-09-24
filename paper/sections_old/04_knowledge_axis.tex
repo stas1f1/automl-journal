@@ -1,0 +1,99 @@
+\section{The prescribed-knowledge axis}
+\label{sec:axis}
+
+Interventions that supply a system with knowledge it would otherwise have to
+derive are usually treated as one thing. In our material they are two, they are
+of very unequal size, and they do not add.
+
+\begin{description}
+  \item[\Ktool{} --- tool prescription.] Which class of instrument to reach for:
+        a dedicated tabular AutoML library for tabular data, a vision backbone
+        library for images, a graph learning library for graphs, a transformer
+        library for text. It removes the question ``what does one normally use
+        for this?''
+  \item[\Kdisc{} --- training discipline.] How to train and how to check
+        oneself: the validation protocol, the handling of temporal shift,
+        leakage checks, and the prohibition of degenerate submissions. It is
+        orthogonal to the choice of library.
+\end{description}
+
+Separating them is not a matter of tidiness: crossed properly, the two halves do
+not add. On the normalised scale of Section~\ref{sec:ceiling} the tool half
+alone reaches $0.87$, the discipline half alone $0.77$, and the two together
+$0.85$---the stronger half does better on its own than in company. Averaging
+per-task relative change instead puts the pair a hair ahead, $+0.72\%$ against
+$+0.69\%$, so which of the two is nominally better depends on the aggregation;
+what does not depend on it is that the pair is worth far less than the sum of
+its halves, $+0.72\%$ against $+0.81\%$. The
+interaction is sharper still on the second architecture, where the library block
+alone loses $19$ of $22$ trials to the time limit while adding the discipline
+block on top brings that to $11$ of $24$: there the half that harms alone
+protects in combination (Section~\ref{sec:kdiscterm}).
+
+\texttt{amp-parkinsons} is a cautionary case about doing this by inference
+instead. An earlier draft attributed a degradation there to a prohibition of
+constant submissions said to have been added for that task alone. Fingerprinting
+the layer text shipped with each of the ten MLAgentBench tasks shows otherwise:
+the prohibition belongs to the discipline block and reaches every task of a
+family identically, so what differs is not the task but the edition of the layer
+(Section~\ref{sec:threats}). The figure that draft compared against came from
+the other edition and cannot be re-read from any artefact, so we drop it.
+Repeating both branches three times gives numbers that can: the layer as a whole
+moves \texttt{amp-parkinsons} from a mean SMAPE of $62.28$ without it to $86.46$
+with it, and each branch is tight enough about its own mean---$58.21$ to $66.35$
+without, $81.78$ to $90.08$ with---that the direction is not in doubt.
+While the two halves are delivered as a single instruction layer, no row of the
+ablation can be attributed to either, and the tables report the layer as a
+whole.
+
+\subsection{The layer is named after its smaller part}
+
+In the implementation we study the layer is composed literally as
+$\texttt{instruction} + \texttt{LIBRARY}[\textit{family}] + \texttt{DISCIPLINE}$,
+and the first section of \texttt{DISCIPLINE} is a \textsc{hardware} block that
+prescribes neither a tool nor a training protocol. That makes the split
+measurable rather than conceptual. Reading the character counts from the module
+that composed the layer, and checking them against the instruction each container
+received: the \textsc{library} block runs from 369 characters for text to 1291
+for tabular tasks, the \textsc{hardware} block is a fixed 668 and the
+\textsc{discipline} block a fixed 3008. The tool prescription---the intervention the layer is named after---accounts for
+between $9.1\%$ and $26.0\%$ of the text. The \textsc{hardware} block, pinning
+down how the device is resolved before training, is neither tool prescription nor
+training discipline and forms a third category; the \textsc{discipline} block is
+the largest component on every task. On the tabular tasks the whole layer runs to 4972 characters against a task
+statement of 1050, close to five times the length of the problem it is attached
+to. This matters for attribution: any effect ascribed to tool prescription in an
+aggregate ablation is at least as likely to originate in the two fixed blocks
+travelling with it, and those are constant across modalities while the reported
+effects are not.
+
+\subsection{A prescription presupposes its environment}
+
+Tool prescription is realisable only where the prescribed tool exists, which
+makes it a property of the environment as much as of the text. The layer states
+that the specialized library is ``pre-installed'' and forbids falling back on
+general-purpose estimators, so it presumes an image provisioned accordingly.
+Against an image without that library it does not produce a weaker treatment but
+a failure. We met this directly: the benchmark's own image ships \texttt{numpy},
+\texttt{pandas} and \texttt{scikit-learn} on Python~3.13, on which the prescribed
+tabular library does not build, so an agent given the prescription there reads
+the data, writes a correct pipeline, and fails at import, scoring zero while
+having done nothing wrong. The environment is therefore part of the treatment and
+we report the provisioning of each arm explicitly
+(Section~\ref{sec:design}). This is also a caution for the literature: an
+ablation of ``prescribe a specialized library'' measures the prescription only
+where the provisioning already holds, and otherwise measures the provisioning.
+
+\subsection{Where each system sits}
+
+Table~\ref{tab:designpoints} places the three systems on this axis.
+
+FEDOT.LLM is not missing \Ktool{} but has it welded into its architecture: the
+instruction ``solve this through FEDOT'' \emph{is} the pipeline. That is the
+extreme point of the design rather than a hole in it, and it is what makes
+Section~\ref{sec:ceiling} interesting---the system whose tool prescription is
+maximal and non-removable performs worst on exactly the family the prescribed
+tool was built for. \Kdisc{} is the only half that could in principle be crossed
+with every system, though we cross it on the two agentic ones only;
+\Ktool{} is crossed on AutoDS-Tools and Terminus-2, with FEDOT.LLM entering as
+the reference point at which it cannot be switched off.

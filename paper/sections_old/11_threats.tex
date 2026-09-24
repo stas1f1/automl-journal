@@ -1,0 +1,147 @@
+\section{Threats to validity}
+\label{sec:threats}
+
+\paragraph{Comparability of data slices and provisioning.} Table~\ref{tab:leaderboard}
+is restricted to systems run through the adapter that uses the full official
+temporal splits and the benchmark's own metrics in raw target units. Earlier
+AutoDS-Tools runs used a different preparation: a 40{,}000-row training slice
+spanning the official train and validation splits, a test slice covering
+$16.7\%$--$61.4\%$ of the official test window in every case its final rows, and
+an extra row-order column the official protocol withholds. Measured split sizes
+for all eight tasks are released; those runs are excluded here and the
+leaderboard uses a re-run of the same system on the common adapter, so the
+difference between the two sets can be read as the price of the preparation. The
+earlier comparison also differed in what was installed, the AutoDS-Tools arm
+carrying the libraries its prescription names while the others used the stock
+image. Section~\ref{sec:matched} closes that axis directly---offered the enriched
+image, the open harness scores inside its own noise floor on seven of eight tasks
+and never names a library the image adds---so the threat stands only for the
+FEDOT.LLM runs, which we could not repeat.
+
+\paragraph{Our own provisioning was broken, and the systems repaired it.} The
+enriched image brings LightGBM as a dependency, but the base image ships no
+OpenMP runtime and the wheel carries none. The import succeeds and the failure
+arrives inside the fit, as a broken worker pool that reads as a modelling error
+and is not one. Forty-five trials met it---twenty-two of twenty-four
+AutoDS-Tools trials and twenty-three of twenty-four matched-provisioning
+trials---and all forty-five diagnosed and repaired it in a single step, which is
+why it went unnoticed until we read the traces. Repeating the whole arm on a
+corrected image agrees to within $0.13\%$ on seven tasks and $0.34\%$ on the
+eighth, so the defect cost no measurable accuracy. It could still have distorted
+a crossed design, since the fault sits inside the prescribed library and can
+strike only the cells where that prescription is on. Every cell we report ran on
+the corrected image.
+
+\paragraph{Repeats and numeric precision.} Published baselines are means over
+fifteen seeds; our agent rows are one run for FEDOT.LLM and the mean of three
+attempts otherwise. The two agentic systems do not share a noise floor:
+Terminus-2 reaches a relative standard deviation of $0.94\%$ while AutoDS-Tools
+reproduces itself to within $0.07\%$, so the $1\%$ threshold used across systems
+is set by the noisier of the pair and would be far too coarse for comparing
+configurations of one system, where a tenth of a percent is already outside the
+spread. FEDOT.LLM metrics reached us at two decimal places. Sweeping every task
+independently to both ends of its rounding interval moves its average rank
+between $16.6$ and $20.3$ of $21$ and its normalised mean between $0.05$ and
+$0.47$; no claim here depends on any part of that interval, but its individual
+rank cells should be read as indicative.
+
+\begin{sloppypar}
+\paragraph{Scorers that accept degenerate submissions.} The prohibition on
+constant submissions belongs to the prescribed-knowledge layer, not to any task:
+fingerprinting the layer shipped with each of the ten MLAgentBench tasks shows it
+present in all ten, byte-identical within a family. It therefore reached the
+treated branch of AutoDS-Tools everywhere and reached neither the untreated
+branch nor Terminus-2, whose harness receives the task file alone. The asymmetry
+is between arms rather than tasks and, since the clause constrains rather than
+assists, it runs against the only arm that carried it. Both degenerate
+submissions we found belong to Terminus-2. On \texttt{imdb} it submitted one
+label for all $25{,}000$ test rows and the scorer returned an accuracy of exactly
+$0.5000$, recording a submission with no model in it at chance level rather than
+rejecting it; on \texttt{amp-parkinsons} $344$ of $559$ rows ($61.5\%$) carry the
+same global value in all four targets. We exclude the \texttt{imdb} figure and
+read \texttt{amp-parkinsons} as a partial fallback. The wider point belongs to
+the benchmark: on eight of the ten tasks nothing in the scoring path separates a
+trained model from a constant, so an agent that fails silently is scored as
+though it had merely performed poorly.
+\end{sloppypar}
+
+\paragraph{An active repair loop inside the treated system.} The repair loop of
+AutoDS-Tools is architecture rather than prescription, but it is invoked
+asymmetrically between the branches (Section~\ref{sec:mechanism}) and therefore
+partially masks the cost of prescription. We report invocation counts alongside
+the scores rather than adjusting for them. Disabling it in both branches would
+measure the interaction between prescription and repair, a different quantity
+which we did not run and which is the experiment we would run next: the repair
+loop is the most plausible explanation for why prescription is survivable in this
+architecture and not in the other (Section~\ref{sec:kdiscterm}).
+
+\begin{sloppypar}
+\paragraph{Trials lost to the wall-clock ceiling.} Four of the twenty-four
+AutoDS-Tools trials on the common adapter reached the $3600$\,s limit; three had
+already written a submission and are scored like any other, and the fourth had
+not and is excluded, so \texttt{homesite-insurance} rests on two attempts.
+Scoring the lost trial as zero was considered and rejected: a timeout measures
+the budget, not the model, and averaging one in would move
+\texttt{homesite-insurance} from $0.961$ to $0.641$, last of the twenty-one
+methods on a task where the system is otherwise near the top, and would carry
+the normalised mean from $0.85$ to $-0.33$---below every published baseline,
+including linear regression---while the average rank moved only from $6.6$ to
+$8.8$. The two scales disagree because the normalisation has no floor, which is
+the second reason not to score a timeout at all. The exclusion is not neutral either, since it drops the
+slowest attempts and leaves the means mildly optimistic about a system whose
+failures correlate with the tasks it finds hardest.
+\end{sloppypar}
+
+\paragraph{Data and validation access.} Several MLAgentBench tasks use subsets of
+the original data and none uses an official competition test split, so absolute
+values there are not comparable with public leaderboards and every comparison in
+this paper is internal by construction. On TabReD the agents receive a labelled
+validation split whereas the published baselines train on the training split
+alone---a small advantage to the agents, working against the direction of our
+main conclusion.
+
+\paragraph{The prescription is a moving target.} The layer is composed on the
+host by the agent package installed when the runner was set up, not by the copy
+pip places inside the container, so reinstalling from a newer checkout changes
+the treatment without changing anything visible in the run configuration. We
+fixed the version by measurement rather than by tag, and the two benchmarks turn
+out to have run against two editions. Every TabReD run applied the layer composed
+by the branch we cloned: $4972$ characters for tabular tasks, SHA-256 prefix
+\texttt{a58b4d40678ff1aa}, verified byte-identical to the tail of
+\texttt{agent/instruction.md} in each trial. The MLAgentBench runs applied the
+edition shipped with the tasks: $5085$ characters for tabular
+(\texttt{bf1e4e7c8c4960a2}), $4363$ for vision, $4163$ for text, $4153$ for
+graph. The two carry the same eight section headings and differ by $113$
+characters in the shared discipline block and $668$ in the graph library block.
+The difference is not cosmetic: the cloned edition advises that SMAPE penalises a
+non-zero prediction against a zero target maximally and tells graph agents to
+mask unreachable candidates before the softmax---two hints written for particular
+tasks---where the shipped edition carries the general prohibition on constant
+submissions instead. The repository recomputes every fingerprint above.
+
+We ran the two editions against each other rather than leaving the threat at a
+character count: same system, same eight tasks, same images, verifier and
+concurrency, three attempts each. Under the shipped edition the treated branch
+produces no submission at all on \texttt{feedback}, \texttt{clrs} and
+\texttt{fathomnet}, nine attempts of nine; under the edition composed today it
+submits on all three, at MCRMSE $0.5512$, pointer accuracy $0.1281$ and micro-F1
+$0.1507$. Where the budget was never binding the shipped edition is the better of
+the two---SMAPE $86.46$ against $93.15$, accuracy $0.5069$ against
+$0.4683$---and the remaining pair is level. Counting submissions rather than
+scores, the shipped edition yields $15$ of $24$ and the composed edition $21$ of
+$24$. The edit is thus not an improvement or a regression but a move along the
+axis this paper is about: one edition presses harder on training discipline and
+pays in unfinished runs, the other presses less and finishes. On three of eight
+tasks the gap between two editions of one prescription exceeds the gap between
+having the prescription and not having it. A result of this kind cannot be
+repeated from a description of the layer, only from its bytes, and the bytes are
+what is least often reported.
+
+\paragraph{Single backbone family.} The comparison uses one model throughout.
+Section~\ref{sec:modelaxis} varies it under both systems and finds the accuracy
+ordering unchanged, so the ranking is not a backbone artefact; what the backbone
+changes is reliability and cost, and in opposite directions for the two
+architectures. That rests on three models, two from one vendor, and one task
+family. A stronger backbone that reasons less verbosely might not push the
+multi-agent system past the time limit at all, and we cannot separate capability
+from verbosity with what we ran.

@@ -1,0 +1,107 @@
+[?2004hroot@a7472311038c:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@a7472311038c:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@a7472311038c:/workspace# ls -la /app/data
+[?2004ltotal 186156
+drwxr-xr-x 2 root root      4096 Aug 28 00:48 .
+drwxr-xr-x 3 root root      4096 Aug 28 00:48 ..
+-rw-rw-r-- 1 root root      4679 Aug 27 21:18 schema.json
+-rw-rw-r-- 1 root root  11884185 Aug 27 21:18 test.csv
+-rw-rw-r-- 1 root root 163985615 Aug 27 21:18 train.csv
+-rw-rw-r-- 1 root root  14728219 Aug 27 21:18 val.csv
+[?2004hroot@a7472311038c:/workspace# pip install xgboost scikit-learn pandas numpy
+[?2004lRequirement already satisfied: xgboost in /usr/local/lib/python3.12/site-packages (2.1.4)
+Requirement already satisfied: scikit-learn in /usr/local/lib/python3.12/site-packages (1.9.0)
+Requirement already satisfied: pandas in /usr/local/lib/python3.12/site-packages (3.0.5)
+Requirement already satisfied: numpy in /usr/local/lib/python3.12/site-packages (2.5.2)
+Requirement already satisfied: nvidia-nccl-cu12 in /usr/local/lib/python3.12/site-packages (from xgboost) (2.31.2)
+Requirement already satisfied: scipy in /usr/local/lib/python3.12/site-packages (from xgboost) (1.18.1)
+Requirement already satisfied: joblib>=1.4.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (1.5.3)
+Requirement already satisfied: narwhals>=2.0.1 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (2.25.0)
+Requirement already satisfied: threadpoolctl>=3.5.0 in /usr/local/lib/python3.12/site-packages (from scikit-learn) (3.6.0)
+Requirement already satisfied: python-dateutil>=2.8.2 in /usr/local/lib/python3.12/site-packages (from pandas) (2.9.0.post0)
+Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.12/site-packages (from python-dateutil>=2.8.2->pandas) (1.17.0)
+[33mWARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.[0m[33m
+[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m A new release of pip is available: [0m[31;49m25.0.1[0m[39;49m -> [0m[32;49m26.2.1[0m
+[1m[[0m[34;49mnotice[0m[1;39;49m][0m[39;49m To update, run: [0m[32;49mpip install --upgrade pip[0m
+[?2004hroot@a7472311038c:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> import xgboost as xgb
+[?2004l[?2004h> from sklearn.metrics import roc_auc_score
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('/app/data/train.csv')
+[?2004l[?2004h> val = pd.read_csv('/app/data/val.csv')
+[?2004l[?2004h> test = pd.read_csv('/app/data/test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Separate target
+[?2004l[?2004h> y_train = train['target']
+[?2004l[?2004h> y_val = val['target']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Feature selection
+[?2004l[?2004h> features = [col for col in train.columns if col != 'target']
+[?2004l[?2004h> 
+[?2004l[?2004h> X_train = train[features]
+[?2004l[?2004h> X_val = val[features]
+[?2004l[?2004h> X_test = test[features]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Basic preprocessing
+[?2004l[?2004h> # Numeric features: fill nan with mean or let XGBoost handle it
+[?2004l[?2004h> # Categorical features: simple label encoding
+[?2004l[?2004h> for col in features:
+[?2004l[?2004h>     if col.startswith('cat_'):
+[?2004l[?2004h>         X_train[col] = X_train[col].astype(str).fillna('nan').factorize()[0]
+[?2004l[?2004h>         # Since we need the same mapping for val and test, we should use a global map
+[?2004l[?2004h>         # but let's do a simpler approach for the baseline: combine and factorize
+[?2004l[?2004h> 
+[?2004l[?2004h> # Correct categorical encoding across sets
+[?2004l[?2004h> for col in features:
+[?2004l[?2004h>     if col.startswith('cat_'):
+[?2004l[?2004h>         combined = pd.concat([X_train[col], X_val[col], X_test[col]]).astype(str).fillna('nan')
+[?2004l[?2004h>         mapping = {val: i for i, val in enumerate(combined.unique())}
+[?2004l[?2004h>         X_train[col] = X_train[col].astype(str).fillna('nan').map(mapping)
+[?2004l[?2004h>         X_val[col] = X_val[col].astype(str).fillna('nan').map(mapping)
+[?2004l[?2004h>         X_test[col] = X_test[col].astype(str).fillna('nan').map(mapping)
+[?2004l[?2004h> 
+[?2004l[?2004h> # XGBoost model
+[?2004l[?2004h> model = xgb.XGBClassifier(
+[?2004l[?2004h>     n_estimators=1000,
+[?2004l[?2004h>     learning_rate=0.05,
+[?2004l[?2004h>     max_depth=6,
+[?2004l[?2004h>     subsample=0.8,
+[?2004l[?2004h>     colsample_bytree=0.8,
+[?2004l[?2004h>     n_jobs=-1,
+[?2004l[?2004h>     random_state=42,
+[?2004l[?2004h>     eval_metric='auc',
+[?2004l[?2004h>     early_stopping_rounds=50
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> model.fit(
+[?2004l[?2004h>     X_train, y_train,
+[?2004l[?2004h>     eval_set=[(X_val, y_val)],
+[?2004l[?2004h>     verbose=False
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict probabilities
+[?2004l[?2004h> probs = model.predict_proba(X_test)[:, 1]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Save predictions
+[?2004l[?2004h> pd.DataFrame({'target': probs}).to_csv('/app/predictions.csv', index=False)
+[?2004l[?2004h> print('Predictions saved to /app/predictions.csv')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a7472311038c:/workspace# python3 solution.py
+[?2004lPredictions saved to /app/predictions.csv
+[?2004hroot@a7472311038c:/workspace# ls -l /app/predictions.csv
+[?2004l-rw-r--r-- 1 root root 193178 Aug 28 08:14 /app/predictions.csv
+[?2004hroot@a7472311038c:/workspace# head -n 5 /app/predictions.csv
+[?2004ltarget
+0.99377316
+0.0008423529
+3.5100125e-05
+0.05098238
+[?2004hroot@a7472311038c:/workspace# wc -l /app/predictions.csv
+[?2004l16296 /app/predictions.csv
+[?2004hroot@a7472311038c:/workspace# 

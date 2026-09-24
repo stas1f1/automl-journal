@@ -1,0 +1,101 @@
+\section{Why: what the execution traces show}
+\label{sec:mechanism}
+
+% STAGE 3: rewritten 8 September 2026.
+
+The results of the two previous sections agree with the statement that
+constraint pays only where it removes a decision the model gets wrong. The
+execution traces, which Harbor records for every trial, say why. This section
+reads them for three things. Which tool does the unprescribed system reach
+for, and does it tune it? Which clauses of the discipline half reach the
+agent's behaviour? How often does prescription send the agent into repair?
+
+\subsection{The unprescribed system picks the prescribed tool and never tunes it}
+\label{sec:spontaneous}
+
+If prescription pays only where the model's default is wrong, then on a family
+where the default is already right it should be worth close to nothing. The
+terminal traces of Terminus-2 test this without an ablation. Its instruction
+names no library, only the task, the file layout, the output format and an
+invitation to train and validate any model of its choosing. It fitted a
+gradient-boosting model on every task in every attempt: LightGBM in
+twenty-three of the twenty-four trials of Section~\ref{sec:matched} and XGBoost
+in the remaining one. On the stock image it installed LightGBM itself on six of
+the eight tasks. That is the family the tool prescription would have
+named. On tabular data the prescription therefore restates the default. Inside
+AutoDS-Tools it improves the task metric by $\gridToolMeanU\%$ on average over
+the eight TabReD tasks, and inside Terminus-2 it changes nothing measurable.
+
+The same traces locate the ceiling. The configuration is hand-written and
+near-identical across tasks and attempts: $1000$ estimators in all twenty-four
+trials, a learning rate of $0.05$ in twenty-three, early stopping on a holdout
+in twenty-three, $31$ leaves in the nineteen that set a leaf count. No search
+appears in any trace: no Optuna, no grid, no randomised search, no
+cross-validated sweep. The gap to the published gradient-boosting rows is
+therefore a gap in search: the harness picks the right tool unaided, the
+baselines are Optuna-tuned over fifteen seeds, and the agent writes one
+plausible configuration and stops. The per-task extraction is released with
+the paper.
+
+\subsection{The discipline half reaches the agent and leaves the score unchanged}
+\label{sec:discipline}
+
+Table~\ref{tab:grid} puts the discipline half of the layer at $\gridDiscMean\%$
+on the task metric, averaged over the eight TabReD tasks. It does not say the half does nothing. The traces of the same four cells show that the discipline half reaches the
+agent. Three
+clauses ask it to compare against a trivial predictor, to allocate the time
+budget before starting, and to keep the variant that validates best. All three behaviours appear in every trial of the two cells with the discipline
+half on, and in no trial of the two cells with it off. The clause counts per cell are
+released with the data package.
+
+Two further clauses fail as a manipulation check, and both show why reading
+one arm alone misleads. AutoDS-Tools inspects its submission in twenty-two of
+twenty-four untreated trials and Terminus-2 in none, a habit of the
+architecture that a cross-system comparison would credit to the instruction.
+Early stopping is universal without the library and invisible with it,
+because the prescribed library performs it internally. A signature shows that
+an instruction reached the trace and leaves open whether it was carried out.
+
+So the discipline block moves three behaviours from never to always and the
+score by $\gridDiscMean\%$: the agent follows the block, and on tabular data
+its own defaults were already adequate. The clause Terminus-2 never leaves a
+trace of, inspecting the submission before finishing, exists to catch the
+failure recorded in Section~\ref{sec:threats}, one constant label for a
+$25{,}000$-row test set. Supplying the clause does not by itself pay: on
+TabReD AutoDS-Tools inspects its submission in every trial and scores no
+better for it, because there was nothing to catch.
+
+\subsection{Prescription makes execution fail more often}
+\label{sec:friction}
+
+AutoDS-Tools contains a repair loop, invoked when execution fails. It is part
+of the architecture and active in both branches, but it does not fire equally
+often. The count comes from the earlier pair of jobs (eighteen tasks, one
+attempt per cell, the earlier data preparation), since the loop was not
+instrumented in the repeats, so we report a direction only. Across those thirty-six runs the loop fired eighteen times
+with the layer against twelve without, in nine of eighteen runs against eight,
+and the imbalance concentrates on the tasks where the prescription names a
+specialised library: four invocations against none on \texttt{clrs} and three
+against none on \texttt{amp-parkinsons}, both libraries whose interface the
+agent then fails on.
+
+Prescription therefore makes execution fail more often, and its net effect is
+positive only where the prescribed tool gains enough to cover those failures.
+We measure it inside a system that can recover from the errors it causes; in
+a harness without a repair loop the losses are larger
+(Section~\ref{sec:kdiscterm}). The same mechanism explains the disagreement
+noted in Section~\ref{sec:related}: if knowledge injection bundles an
+override that helps with one that hurts, and the mix of task families differs
+between studies, aggregate ablations report inconsistent effects.
+
+The trial artefacts name the clause behind the largest loss. The discipline
+block tells the agent not to stop after ``an arbitrary small budget (5 or 15
+epochs is almost always badly undertrained)'' and offers ``$\sim 100$
+epochs'' as a starting point. On \texttt{clrs} the untreated branch chose $5$
+to $30$ epochs, the range the clause forbids, reached $\mlabClrsOff$ pointer
+accuracy and used $92$ minutes of a $120$-minute budget on one attempt; the
+treated branch submitted nothing in three. A branch that already spends most
+of the budget at $5$ to $30$ epochs cannot also honour a clause that names a
+hundred, because the clause is written without reference to the budget the
+task grants. The treated traces cannot be read, since the agent is killed at
+the ceiling before it writes one.
