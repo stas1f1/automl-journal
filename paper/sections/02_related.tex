@@ -1,71 +1,75 @@
 \section{Related work}
 \label{sec:related}
 
-% STAGE 3: rewritten 8 September 2026.
+% Remaster, 3 October 2026.  Four paragraphs: agentic AutoML systems; how
+% much the harness matters; instruction files; evaluation against tuned
+% baselines.
 
-\paragraph{Degrees of autonomy, and where knowledge enters.} LLM-based AutoML
-systems can be ordered by how much of the modelling decision they leave to the
-model: hyperparameter optimisers use the language model mainly for the cold
-start, pipeline composers search jointly over features, model and
-hyperparameters, and adaptive planners revise the plan as validation feedback
-arrives. Orthogonally, systems differ in where knowledge of libraries and
-methods comes from: the parametric memory of the backbone, retrieved material
-such as strategic insights mined from competition
-write-ups~\citep{kulibaba2025kompeteai}, or API-level knowledge embedded in
-the decision process, as MLZero does with semantic and episodic memory that
-suppresses hallucinated and outdated API calls~\citep{fang2025mlzero}.
-Section~\ref{sec:axis} splits this second axis into two instructions with
-different mechanisms: which library to use, and how to train and validate.
+\paragraph{Agentic AutoML systems} LLM-based systems for machine-learning
+tasks range from workflows with fixed stages, where the model fills in
+configurations or code templates, to multi-agent systems with planner,
+coder and reviewer roles, to single agents in an open execution
+loop~\citep{trirat2025automlagent,li2024autokaggle,guo2024dsagent,yang2025rdagent,kulibaba2025kompeteai,fang2025mlzero,lapin2025lightautods}.
+They also differ in where knowledge about libraries and methods comes from:
+the parametric memory of the backbone, retrieved competition
+write-ups~\citep{guo2024dsagent,kulibaba2025kompeteai}, or API-level
+knowledge embedded in the decision process~\citep{fang2025mlzero}. Most
+papers present one system and report an improvement over a previous one,
+with the backbone, the harness and the evaluation protocol all changing
+between papers. Their ablations disagree: on MLE-bench the search structure
+is the largest contributor in one system and has no measurable effect in
+another, and the ranking of memory against search flips between
+studies~\citep{toledo2025aira}. Such disagreement is expected when factors
+are removed one at a time on different backbones and task sets and the
+factors interact. We hold the backbone, the tasks and the environment fixed
+and cross the factors.
 
-\paragraph{Ablations that disagree.} Multi-agent frameworks for data science
-competitions are numerous~\citep{li2024autokaggle,trirat2025automlagent,kulibaba2025kompeteai,fang2025mlzero},
-and their reported ablations disagree. On MLE-bench, search structure is the
-largest single contributor in one system and has no measurable effect in
-another, and memory ranks last in one study and level with search in a
-second~\citep{toledo2025aira}. Disagreement of that kind is expected when
-ablations are run one factor at a time on different backbones and task sets,
-and the factors also interact: advanced search policies gain nothing when
-restricted to a weaker operator set~\citep{toledo2025aira}. Our design holds
-the backbone, the tasks and the environment fixed and crosses the factors, so
-their interaction is measured.
+\paragraph{How much the harness matters} Evidence from coding agents points
+in two directions. With strong frontier models, elaborate harnesses add
+little: a single session of a minimal coding agent matches four open-source
+ML-engineering harnesses under the same backbone and time
+budget~\citep{brilliantov2026harness}, and the advantage of complex harnesses
+on issue repair shrinks as the model
+improves~\citep{hu2026beyondmodel,kapoor2024agents}. With weaker models or
+harder tasks, the harness is a large hidden variable: aggregate scores span
+$23.8$ points across harnesses evaluated identically~\citep{harnessbench2026},
+harness choice induces a 40$\times$ spread in tokens per solved
+task~\citep{scaffoldeffect2026}, and with GPT-4o a purpose-built scaffold
+earns medals in $8.7\%$ of competitions against $0.8\%$ and $4.4\%$ for two
+general-purpose ones~\citep{chan2025mlebench}. GRACE-DS~\citep{tsymbalov2026graceds}, the
+closest work in domain, structures the interaction of LLM-driven AutoML
+agents on tabular tasks and finds that structure compresses the spread across
+eight frontier backbones of 80B to 1.6T parameters. We vary the harness under
+one 31B backbone, the complementary design, and read the spread against
+tuned reference methods.
 
-\paragraph{Evaluation against tuned baselines.} Agentic AutoML papers that
-compare against classical methods almost always compare against defaults. The
-closest work in domain is GRACE-DS~\citep{tsymbalov2026graceds}, which
-evaluates LLM-driven AutoML agents on tabular tasks under a structured
-environment and reports that structuring the interaction compresses the spread
-across backbones. Two differences matter. GRACE-DS normalises scores against
-an untuned HistGradientBoosting model, a threshold well below the tuned
-XGBoost, LightGBM and CatBoost used here, and its eight backbones are frontier
-models of 80B to 1.6T parameters, all larger than the dense 31B model used
-here. GRACE-DS varies the backbone under one structure; we vary the structure
-under one backbone. Section~\ref{sec:modelaxis} measures the backbone effect under our conditions.
-On a scale where 0 is the weakest and 1 the strongest of the eighteen published
-methods on each task, swapping the backbone under AutoDS-Tools moves the score
-by 0.04; the instruction file that ships with AutoDS-Tools moves it by
-$\layerWorthNorm$, and the three architectures with that file removed lie
-within $\spanArch$ of each other (Section~\ref{sec:halfrange}).
+\paragraph{Instruction files and skills} Procedural instructions mounted
+into a harness are now a distinct object of study. Curated skills lift pass
+rates by 16.6 points across 18 model--harness configurations, and the gain
+depends on the harness~\citep{li2026skillsbench}; repository-level context
+files for coding agents give no general improvement and add 20\% to
+inference cost~\citep{gloaguen2026agentsmd}; retrieved external knowledge
+lowered the medal rate of one data-science agent on its easiest
+tasks~\citep{yang2025rdagent}; expert-provided knowledge raised the solve
+rate of science agents by two points~\citep{chen2025scienceagentbench}. In
+tabular AutoML, dataset descriptions in the prompt were the first such
+intervention~\citep{hollmann2023caafe}. These studies switch the whole file
+at once. We split the file AutoDS-Tools ships with into the part that names
+the library and the part that prescribes a training discipline, measure each
+inside two harnesses and at two starting points, and find that the two parts
+act through different mechanisms (Section~\ref{sec:mechanism}). An automatic
+harness-evolution study reports that the system prompt contributes little
+compared with tools and memory~\citep{harness2026prompt}; our file is a
+prompt-level intervention, and its two parts gain less together than
+separately, as that result predicts.
 
-\paragraph{Scaffolding against model capability.} One study in the embodied setting asked whether scaffolding can substitute for
-model capability~\citep{agentspec2026}. It crossed reasoning, memory,
-reflection and reinforcement modules with dense models of increasing size and
-concluded that external scaffolding can compensate for weaker native
-long-horizon reasoning. We follow that design on supervised tabular tasks, where eighteen tuned
-methods, among them XGBoost, LightGBM and CatBoost, give a strong reference. Agentic coding has
-produced parallel evidence that the harness is a large hidden variable. Across
-configurable harnesses evaluated identically, aggregate score spans $23.8$
-points~\citep{harnessbench2026}. Harness choice induces up to a 40$\times$
-difference in tokens per solved task while the model-to-model pass-rate spread
-stays within eight points~\citep{scaffoldeffect2026}. That literature varies
-the harness with the task family fixed; we fix the task family and vary how
-much of the pipeline the architecture decides in advance, from FEDOT.LLM
-through AutoDS-Tools to Terminus-2, and tuned methods on the same split turn
-the spread into a fraction of the range between the weakest and the strongest
-published method. A third result bears on our design: when a coding harness
-is evolved automatically, ablations localise the gain to tools, middleware and
-long-term memory, with the system prompt contributing
-little~\citep{harness2026prompt}. Our prescribed-knowledge layer is a
-prompt-level intervention; Section~\ref{sec:axis} measures its size and
-Sections~\ref{sec:grid} and~\ref{sec:kdiscterm} its effect, and the two
-instructions in it gain less together than the sum of their separate gains,
-as that result predicts.
+\paragraph{Evaluation against tuned baselines} Agentic AutoML papers that
+compare against classical methods almost always compare against defaults;
+GRACE-DS normalises against an untuned HistGradientBoosting model. The AutoML
+benchmark literature reports average rank and a normalised score against
+tuned frameworks, with the Friedman and Wilcoxon tests of
+Dem\v{s}ar~\citep{gijsbers2024amlb,demsar2006statistical}. TabReD publishes
+eighteen methods, among them XGBoost, LightGBM and CatBoost, each
+Optuna-tuned and averaged over fifteen seeds on temporal
+splits~\citep{rubachev2024tabred}; we adopt that table as the reference and
+the benchmark's conventions for ranks and normalised scores.

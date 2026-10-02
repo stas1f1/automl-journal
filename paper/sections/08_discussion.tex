@@ -1,86 +1,105 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% STAGE 3: rewritten 9 September 2026.  The second thesis is kept in its weak
-% form throughout.
+% Remaster, 3 October 2026.
 
-\subsection{What the ordering does and does not show}
+\subsection{What the results say about harness design}
 
-Compared as deployed, the six-agent AutoDS-Tools ranks first on TabReD, and
-the rigid pipeline FEDOT.LLM and the open harness Terminus-2 are level in
-average rank, FEDOT.LLM ahead on the normalised mean through one task. We do
-not claim an optimum in the middle: three points cannot fix the shape of a
-curve, and most of AutoDS-Tools' lead belongs to its prescribed-knowledge
-layer. With the layer removed the scores are FEDOT.LLM $\nFedot$,
-AutoDS-Tools $\nAutoDSOff$ and Terminus-2 $\nTerminus$ on the normalised
-scale, within $\spanArch$ of each other, of the order of their run-to-run
-noise. What the data support is this: on tabular tasks the three
-architectures, from the rigid pipeline to the open harness, reach the same
-region once what ships with them is taken away, and what separates the
-deployed systems is the instruction file of one and the backend search of
-another. Whether a designed middle ground would beat all three is a
-hypothesis this study cannot test.
+Compared as shipped, the six-agent AutoDS-Tools ranks first on TabReD and
+the workflow FEDOT.LLM and the minimal harness Terminus-2 are level. The
+ablations attribute that order to two things that are separable from the
+harness: the instruction file of one system and the backend search of
+another. With the file removed, the three designs, from the fixed-stage
+workflow to the open shell, reach the same region of the normalised scale,
+and the differences between them equal the range a single harness covers
+over its own attempts. Three designs cannot fix the shape of a curve, so we
+do not claim that a designed middle ground would beat all three. What the
+data support is narrower: on tabular tasks with a mid-size open model, the
+choice of harness changes accuracy by less than the choice of attempt, and
+changes reliability, wall-clock and the set of tasks a system can attempt
+at all.
 
-\subsection{What the case studies add}
-\label{sec:cases-discussion}
+The instruction file is what changes accuracy, and the ablations show its
+limits. It pays inside the harness it was written for, from
+scratch, on the task family whose library it names. Moved to another
+harness it ends half or more of the trials; applied where a working script
+already exists it ends whole tasks. Both failures trace to specific sentences, the
+advice on training time and the instruction to replace the supplied tool,
+and both are invisible to an ablation that switches the file as one block.
+This is also the reading we propose for the disagreement among published
+ablations of instruction files and retrieved knowledge: a file measured in
+one harness, from one starting point, has not been measured in another.
 
-The case studies of Section~\ref{sec:cases} bear on the ceiling of
-Section~\ref{sec:ceiling} and on RQ3. Two of three author baselines were
-exceeded on the authors' own metric by an open 31B model working from the task
-text alone; applied scientific baselines are often well below what a competent
-tabular pipeline achieves, so the gap to tuned XGBoost on TabReD is a statement
-about expert-tuned baselines specifically. FEDOT.LLM, level with Terminus-2
-on TabReD, beat both agents on F-DATA, where the task reduces to tuning a
-fixed backend. On a family where
-the prescribed library is a sound choice, the prescription still cost
-Terminus-2 all \caseTermPrescTotal{} attempts, for the reason
-Section~\ref{sec:kdiscterm} gives, and it pays only inside an architecture
-that can wait for the prescribed tool.
+What separates every configuration from the strongest published method is
+search. The agents choose the right model family unaided and write one
+configuration; the reference methods are Optuna-tuned over fifteen seeds.
+The one harness that searches, FEDOT.LLM, beats every published method on
+the task where model choice matters most and is level with Terminus-2 over
+the eight. Search over models and hyperparameters is a known, cheap addition
+to any of the three harnesses, and the traces say it is the first thing to
+add.
 
-\subsection{Threats to validity}
+\subsection{Guidance for practitioners}
+
+The results give one rule per situation. When a strong tuned baseline
+exists, use it: the best cell in the paper is level with tuned XGBoost and
+every cell is below the strongest published method. For a tabular task from
+scratch with accuracy first and an hour per task acceptable, use
+AutoDS-Tools with its instruction file. For a first pass over a new
+scientific dataset in minutes per attempt, use Terminus-2 with the task text
+alone, which beat two author baselines and found the published
+featurisation on OpenPoly. Where search over a fixed backend pays, use
+FEDOT.LLM, best of the three on \texttt{ecom-offers} and on F-DATA. When a
+working script is supplied, add no library instruction. Two rules hold
+across at least two protocols: prescribe only the decision the model would
+otherwise get wrong, and keep advice about training time out of the prompt
+of any harness with a hard time limit.
+
+\subsection{Limitations}
 \label{sec:threats}
 
-Six threats remain after the deviations accounted for in
-Section~\ref{sec:deviations}. First, repeats. Published baselines are means
-over fifteen seeds; our agent rows are means of three attempts, and on
-\allIdentFedot{} of eight tasks the three FEDOT.LLM attempts agree to every
-digit, so its spread is understated. Its row also reads the column types from
-the task schema (Section~\ref{sec:deviations}), an input the agents take from
-the task text.
+\emph{Repeats.} Published baselines are means over fifteen seeds; agent rows
+are means of three attempts, and on \allIdentFedot{} of eight tasks the three
+FEDOT.LLM attempts agree to every digit, so its spread is understated. With
+eight tasks the paired tests have little power, and we state them alongside
+the win counts and intervals for that reason.
 
-Second, scorers that accept degenerate submissions. The prohibition on
-constant submissions belongs to the layer, so only the treated branch of
-AutoDS-Tools carried it, and any bias from the asymmetry works against that
-arm. Both degenerate submissions we found belong to Terminus-2: on
-\texttt{imdb} one label for all $25{,}000$ test rows, scored at exactly
+\emph{Scorers that accept degenerate submissions.} The prohibition on
+constant submissions belongs to the instruction file, so only the cell with
+the file carried it, and any bias from the asymmetry works against that
+cell. Both degenerate submissions we found belong to Terminus-2: on
+\texttt{imdb} one label for all 25\,000 test rows, scored at exactly
 $0.5000$ and excluded, and on \texttt{amp-parkinsons} one global value in
-$61.5\%$ of rows, read as a partial fallback. On eight of the ten MLAgentBench
-tasks nothing in the scoring path separates a trained model from a constant.
+$61.5\%$ of rows, read as a partial fallback.
 
-Third, the repair loop. AutoDS-Tools repairs failed executions more often with
-the layer than without (Section~\ref{sec:friction}), so it partially masks the
-cost of prescription. We report the counts without adjustment; disabling the
-loop in both branches is the experiment we would run next.
+\emph{The repair loop.} AutoDS-Tools repairs failed executions more often
+with the file than without (Section~\ref{sec:friction}), so it partially
+masks the cost of the file. We report the counts without adjustment;
+disabling the loop in both branches is the experiment we would run next.
 
-Fourth, the lost trial: \rerunLost{} of the twenty-four AutoDS-Tools trials on
-TabReD reached the one-hour limit with nothing to score and is excluded, so
-\texttt{homesite-insurance} rests on two attempts. Scoring it as zero would
-move that task from ROC-AUC $0.961$ to $\timeoutZeroHomesite$, the normalised
-mean of AutoDS-Tools from $\nAutoDS$ to $\timeoutZeroNorm$, below every
-published baseline, and its average rank only from $\rkAutoDS$ to
-$\timeoutZeroRank$, since the normalisation has no floor. The exclusion is
-not neutral either: it drops the slowest attempt of a system whose failures
-fall on the tasks it finds hardest.
+\emph{The lost trial.} One of the 24 AutoDS-Tools trials on TabReD
+reached the one-hour limit with nothing to score and is excluded, so
+\texttt{homesite-insurance} rests on two attempts. Scoring that attempt at
+the weakest published value would move the normalised mean of AutoDS-Tools
+from $\nAutoDS$ to $\sensLostNorm$, still ahead of the other two
+harnesses; the exclusion drops the slowest attempt of a system whose
+failures fall on the tasks it finds hardest.
 
-Fifth, data access. Several MLAgentBench tasks use subsets of the original
-data and none an official test split, so every comparison there is internal.
-On TabReD the agents receive a labelled validation split and the published
-baselines train on the training split alone, a small advantage to the agents
-that works against our main conclusion.
+\emph{Data access.} Several MLAgentBench tasks use subsets of the original
+data and none an official test split, so every comparison there is
+internal. On TabReD the agents receive the labelled validation split
+(Section~\ref{sec:benchmarks}), a small advantage that works against our
+main conclusion.
 
-Sixth, the backbone. Section~\ref{sec:modelaxis} varies it under both agentic
-systems and finds the accuracy ordering unchanged, so the ranking is not a
-backbone artefact, but that rests on three models, two from one vendor, and
-one task family. A stronger backbone that reasons less verbosely might not
-push the multi-agent system into the time limit at all, and we cannot separate
-capability from verbosity with what we ran.
+\emph{The backbone.} The backbone ablation rests on three models, two from
+one vendor, and one task family. A stronger model that reasons less
+verbosely might not push the multi-agent system into the time limit at all,
+and we cannot separate capability from verbosity with what we ran. The
+finding that the instruction file outweighs a backbone swap is therefore
+reported for this domain and these models.
+
+\emph{Generality of the harnesses.} The three systems are one instance each
+of a workflow, a multi-agent system and a minimal harness. A different
+six-agent system or a different fixed-stage workflow could behave
+differently; the claim is about these three, and about the method of
+separating harness, instructions and backbone, which transfers.

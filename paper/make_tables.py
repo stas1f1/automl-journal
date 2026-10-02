@@ -224,10 +224,10 @@ def table_leaderboard():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{Agent architectures placed in the TabReD leaderboard: full "
-      r"official temporal splits, the benchmark's metrics in raw units. Published "
-      r"rows are Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}; agent "
-      r"rows use \texttt{gemma-4-31b-it}; agent rows are means over three attempts. "
+    A(r"\caption{The three harnesses as shipped in the TabReD leaderboard: "
+      r"official temporal splits, metrics in raw units. Published rows are "
+      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}; agent rows are "
+      r"means over three attempts on \texttt{gemma-4-31b-it}. "
       r"Best per column in bold.}")
     A(r"\label{tab:leaderboard}")
     A(r"\small")
@@ -268,9 +268,9 @@ def table_leaderboard():
     A(r"\midrule")
     A(r"\multicolumn{%d}{l}{\itshape Agentic AutoML systems (this work)} \\" % (len(TASKS) + 2))
     AGENT_LABEL = {
-        "Terminus-2":   r"Terminus-2 \emph{(open harness)}",
+        "Terminus-2":   r"Terminus-2 \emph{(single agent)}",
         "AutoDS-Tools": r"AutoDS-Tools \emph{(multi-agent)}",
-        "FEDOT.LLM":    r"FEDOT.LLM \emph{(rigid pipeline)}",
+        "FEDOT.LLM":    r"FEDOT.LLM \emph{(workflow)}",
     }
     for name in AGENTS:
         A(row(name, AGENT_LABEL.get(name)))
@@ -533,22 +533,22 @@ def table_mlab():
     by_task = {row[0]: row for row in MLAB}
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{AutoDS-Tools with and without its prescribed-knowledge layer, "
+    A(r"\caption{AutoDS-Tools with and without its instruction file, "
       r"and Terminus-2, on the eight MLAgentBench tasks that repeat on our hardware: "
       r"one job, one verifier, three attempts per task. Mean, min and max are over "
       r"the attempts that submitted; a superscript gives the number of submitting "
       r"attempts where it is below three, and \emph{none} means no attempt "
-      r"submitted. Bold marks the better of AutoDS-Tools without the layer and "
+      r"submitted. Bold marks the better of AutoDS-Tools without the file and "
       r"Terminus-2 where the margin exceeds $5\%$. $\Delta$ is the change in mean "
-      r"score with the layer, divided by the larger of the two means, positive "
-      r"where the layer helps.}")
+      r"score with the file, divided by the larger of the two means, positive "
+      r"where the file helps.}")
     A(r"\label{tab:mlab}")
     A(r"\footnotesize")
     A(r"\setlength{\tabcolsep}{3pt}")
     A(r"\begin{tabular}{llrrrrrrrrrr}")
     A(r"\toprule")
-    A(r" & & \multicolumn{3}{c}{AutoDS-Tools, layer off} & "
-      r"\multicolumn{3}{c}{AutoDS-Tools, layer on} & "
+    A(r" & & \multicolumn{3}{c}{AutoDS-Tools, no file} & "
+      r"\multicolumn{3}{c}{AutoDS-Tools, file on} & "
       r"\multicolumn{3}{c}{Terminus-2} & \\")
     A(r"\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}")
     A(r"Task & Metric & mean & min & max & mean & min & max & mean & min & max & $\Delta$ \\")
@@ -576,10 +576,10 @@ def table_mlab():
     A(r"\item \texttt{identify-contrails} is counted as a tie between AutoDS-Tools "
       r"and Terminus-2: both cells sit at the floor of the metric, and its $\Delta$ "
       r"divides one small number by another and is not read as a result. "
-      f"Without the layer AutoDS-Tools takes {wins[0]} of the eight tasks against "
+      f"Without the file AutoDS-Tools takes {wins[0]} of the eight tasks against "
       f"Terminus-2 and Terminus-2 {wins[1]}. "
       r"Median trial: $6.1$ minutes for Terminus-2 against $10.9$ for AutoDS-Tools "
-      r"without the layer; means $19.1$ against $63.2$. Terminus-2 reached its "
+      r"without the file; means $19.1$ against $63.2$. Terminus-2 reached its "
       r"agent budget once in $24$ trials, AutoDS-Tools $13$ times in $30$.")
     A(r"\end{tablenotes}")
     A(r"\end{table*}")
@@ -604,12 +604,11 @@ def table_cases():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{Three scientific case studies, one row per system and task text. "
-      r"\emph{Prescribed} is the published task text with its library section; "
-      r"\emph{plain} is the same text without it. $n$ counts attempts that left a "
-      r"submission; mean, min and max are over those. Minutes are the median agent "
-      r"time per attempt. Author baselines are on the authors' own metric. Bold: "
-      r"the best system mean per case.}")
+    A(r"\caption{Three scientific case studies, one row per system and task text: "
+      r"the published text with its library section, or the same text without it "
+      r"(plain). $n$ counts attempts that left a submission; mean, min and max are "
+      r"over those; minutes are the median agent time per attempt. Bold: the best "
+      r"system mean per case.}")
     A(r"\label{tab:cases}")
     A(r"\small")
     A(r"\setlength{\tabcolsep}{5pt}")
@@ -629,8 +628,9 @@ def table_cases():
                 continue   # ячейка не применима (FEDOT.LLM на OpenPoly)
             n, mean, lo, hi, med, total = c
             mins = f"{med:.1f}" if med is not None else "--"
+            arm = {"prescribed": "with library section", "plain": "plain"}[arm]
             if system == "FEDOT.LLM":
-                arm = "plain (tool welded in)"
+                arm = "plain (library built in)"
             m = f"{mean:.3f}" if n else "--"
             if n and mean == best_mean:
                 m = r"\textbf{" + m + "}"
@@ -812,18 +812,18 @@ def table_grid():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{The prescribed-knowledge layer split into its halves on "
-      r"AutoDS-Tools over TabReD, twenty-four trials per cell on one image and "
-      r"one machine. The untreated cell is given in the task's own units; the "
-      r"other three as relative change against it, positive is better.}")
+    A(r"\caption{The two parts of the instruction file crossed on AutoDS-Tools "
+      r"over TabReD, 24 trials per cell on one image and one machine. The cell "
+      r"without the file is given in the task's own units, the other three as "
+      r"relative change against it, positive is better.}")
     A(r"\label{tab:grid}")
     A(r"\small")
     A(r"\setlength{\tabcolsep}{5pt}")
     A(r"\begin{tabular}{llrrrr}")
     A(r"\toprule")
-    A(r" & & untreated & \multicolumn{3}{c}{change against untreated, \%} \\")
+    A(r" & & no file & \multicolumn{3}{c}{change against no file, \%} \\")
     A(r"\cmidrule(l){4-6}")
-    A(r"Task & Metric & cell & $K_{\text{tool}}$ only & $K_{\text{disc}}$ only & both \\")
+    A(r"Task & Metric & & library only & discipline only & both \\")
     A(r"\midrule")
     cols = [[], [], []]
     for task, entry in GRID.items():
@@ -899,9 +899,9 @@ KDISC_TERM = [
     # label, valid trials, lost, tasks returning a result, median steps,
     # median minutes, $/trial, mean relative % vs the untreated cell
     ("neither",                        24,  2, 8,  6,  2.5, 0.0029, None),
-    (r"$K_{\text{disc}}$",             24, 13, 7, 18, 14.1, 0.0303, -0.05),
-    (r"$K_{\text{disc}}$, minus time", 24,  0, 8,  7,  3.0, 0.0044, -0.69),
-    (r"$K_{\text{tool}}$",             22, 19, 3, 14, 10.2, 0.0107, +1.21),
+    ("discipline",                    24, 13, 7, 18, 14.1, 0.0303, -0.05),
+    ("discipline, minus time",        24,  0, 8,  7,  3.0, 0.0044, -0.69),
+    ("library",                       22, 19, 3, 14, 10.2, 0.0107, +1.21),
     ("both",                           24, 11, 6, 20, 18.4, 0.1172, +1.13),
 ]
 # Fisher's exact, two-sided, on the loss counts
@@ -920,10 +920,9 @@ def table_kdisc_term():
     A = L.append
     A(r"\begin{table}[t]")
     A(r"\centering")
-    A(r"\caption{The prescribed-knowledge layer appended to the task file for "
-      r"Terminus-2, twenty-four trials per cell on one machine, one image and one "
-      r"backbone. Lost: trials ending with no submission. Steps and minutes are "
-      r"medians per trial.}")
+    A(r"\caption{The instruction file appended to the Terminus-2 task statement, "
+      r"24 trials per cell on one machine, image and backbone. Lost: trials ending "
+      r"with no submission. Steps and minutes are medians per trial.}")
     A(r"\label{tab:kdiscterm}")
     A(r"\footnotesize")
     A(r"\setlength{\tabcolsep}{3pt}")
@@ -931,7 +930,7 @@ def table_kdisc_term():
     A(r"\toprule")
     A(r"Cell & Trials & Lost & Tasks & Steps & Min & \$/trial & rel.\ \% \\")
     A(r"\midrule")
-    short_label = {"neither": "none", r"$K_{\text{disc}}$, minus time": r"$K_{\text{disc}}$ trimmed"}
+    short_label = {"neither": "none", "discipline, minus time": "discipline trimmed"}
     for label, n, lost, tasks, steps, mins, cost, rel in KDISC_TERM:
         relcell = "ref." if rel is None else spct(rel)
         label = short_label.get(label, label)
@@ -940,21 +939,19 @@ def table_kdisc_term():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\par\smallskip")
-    A(r"\begin{minipage}{0.97\linewidth}\scriptsize The $K_{\text{tool}}$ cell "
+    A(r"\begin{minipage}{0.97\linewidth}\scriptsize The library cell "
       r"lost two trials to a network fault and reports twenty-two. No cell had a "
       r"timeout. Tasks: how many of eight returned a metric at least once. "
-      r"rel.\ \%: mean relative change against the untreated cell over the tasks "
+      r"rel.\ \%: mean relative change against the cell without the file over the tasks "
       r"that cell returns; the last two rows average over a surviving minority. "
-      r"Fisher's exact test on loss counts, "
-      rf"two-sided: $K_{{\text{{disc}}}}$ against neither $p={KDISC_TERM_P['disc_vs_neither']}$; "
-      rf"trimmed against $K_{{\text{{disc}}}}$ $p={KDISC_TERM_P['trim_vs_disc']}$; "
-      rf"trimmed against neither $p={KDISC_TERM_P['trim_vs_neither']}$, i.e.\ "
-      rf"indistinguishable; $K_{{\text{{tool}}}}$ against neither "
-      rf"$p={KDISC_TERM_P['tool_vs_neither']}$; $K_{{\text{{tool}}}}$ against both "
-      rf"$p={KDISC_TERM_P['tool_vs_both']}$. Five tests are reported without a "
-      r"multiplicity correction; at these $p$-values a Holm correction changes no "
-      r"conclusion. Trimmed: the discipline half with its two clauses about "
-      r"training time removed."
+      r"Fisher's exact test on lost trials, two-sided: "
+      rf"discipline against none $p={KDISC_TERM_P['disc_vs_neither']}$; "
+      rf"trimmed against discipline $p={KDISC_TERM_P['trim_vs_disc']}$; "
+      rf"trimmed against none $p={KDISC_TERM_P['trim_vs_neither']}$; "
+      rf"library against none $p={KDISC_TERM_P['tool_vs_neither']}$; library against both "
+      rf"$p={KDISC_TERM_P['tool_vs_both']}$; a Holm correction changes no "
+      r"conclusion. Trimmed: the discipline instruction with its two paragraphs "
+      r"about training time removed."
       r"\end{minipage}")
     A(r"\end{table}")
     return "\n".join(L)
@@ -1013,12 +1010,12 @@ def table_axis():
 
 
 COST_SHORT = {
-    "AutoDS-Tools ($K$ on)": "AutoDS ($K$ on)",
-    "AutoDS-Tools ($K$ off)": "AutoDS ($K$ off)",
-    "AutoDS-Tools (this work)": "AutoDS",
-    "AutoDS-Tools ($K$ off, this work)": "AutoDS ($K$ off)",
-    "AutoDS-Tools (shipped $K$, this work)": "AutoDS (shipped $K$)",
-    "AutoDS-Tools (composed $K$, this work)": "AutoDS (composed $K$)",
+    "AutoDS-Tools ($K$ on)": "AutoDS (file on)",
+    "AutoDS-Tools ($K$ off)": "AutoDS (no file)",
+    "AutoDS-Tools (this work)": "AutoDS (file on)",
+    "AutoDS-Tools ($K$ off, this work)": "AutoDS (no file)",
+    "AutoDS-Tools (shipped $K$, this work)": "AutoDS (file on)",
+    "AutoDS-Tools (composed $K$, this work)": "AutoDS (composed file)",
     "Terminus-2 (this work)": "Terminus-2",
 }
 
@@ -1067,7 +1064,7 @@ def table_cost():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item Distributions are right-tailed: the untreated AutoDS-Tools branch on "
+    A(r"\item Distributions are right-tailed: the AutoDS-Tools branch without the file on "
       r"MLAgentBench has a median of $10.9$ minutes against a mean of $63.2$, and "
       r"one Terminus-2 trial (\texttt{feedback}, $571$ steps, \$8.71) is $84\%$ of "
       r"its job, whose median trial cost \$0.033. FEDOT.LLM calls the model from "
@@ -1323,8 +1320,8 @@ def fig_position():
           f" at ({v:.4f},{y:.2f}) {{{name}\\ {v:.2f}}};")
     # our three systems below the line
     label = {"AutoDS-Tools": "AutoDS-Tools \\emph{(multi-agent)}",
-             "Terminus-2": "Terminus-2 \\emph{(open harness)}",
-             "FEDOT.LLM": "FEDOT.LLM \\emph{(rigid pipeline)}"}
+             "Terminus-2": "Terminus-2 \\emph{(single agent)}",
+             "FEDOT.LLM": "FEDOT.LLM \\emph{(workflow)}"}
     for i, (k, v) in enumerate(sorted(ag.items(), key=lambda kv: -kv[1])):
         y = -0.62 - 0.42 * i
         A(f"\\draw[black!45] ({v:.4f},-0.04) -- ({v:.4f},{y + 0.05:.2f});")
@@ -1464,6 +1461,116 @@ def fig_walltime():
 # descriptive names otherwise.  A number that is not derivable from the data
 # in this file stays a literal in the prose and is not defined here.
 # ======================================================================
+# ----------------------------------------------------------------------
+# Per-task means of the remaining TabReD arms, for the paired statistics and
+# the ablation figure.  Copied from result_files/MASTER_all_systems.csv, which
+# names the Harbor job behind every row.  None: no attempt returned a metric.
+# ----------------------------------------------------------------------
+# Backbone axis, 29-30.08.2026 on nss-calc2 (jobs terminus-tabred-M*, autods-tabred-M*).
+TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547614, 0.162790, 1.617088]
+TERM_31B_AXIS = [0.959566, 0.563585, 0.857289, 0.250328, 0.483718, 0.547847, 0.162705, 1.523593]
+TERM_GLM = [0.954624, 0.604341, 0.852459, 0.365072, 0.483784, 0.552850, 0.163378, 1.545516]
+AUTODS_26B = [0.959968, 0.579983, 0.859903, 0.252292, 0.482312, 0.547438, 0.162112, 1.479850]
+AUTODS_GLM = [0.961118, 0.579410, 0.853918, 0.231021, 0.481861, 0.547520, None, 1.511525]
+# The instruction file appended to the Terminus-2 task file, 30.08.2026
+# (jobs terminus-kdisc-*, terminus-kdisc-notime-*, terminus-ktool2-*, terminus-kboth-*).
+TERM_KDISC = [0.959449, 0.564631, 0.856682, 0.251640, 0.483327, 0.547815, 0.162731, None]
+TERM_KDISC_TRIM = [0.959766, 0.559876, 0.815040, 0.250328, 0.483645, 0.547754, 0.162748, 1.523479]
+TERM_KTOOL = [None, 0.579973, None, None, 0.482665, None, 0.161900, None]
+TERM_KBOTH = [None, 0.579979, 0.863972, 0.251457, None, 0.547438, 0.161918, 1.478262]
+
+# Trials that ended without a submission, per cell (of the trials run).
+LOST = {
+    "autods_both": (1, 24), "autods_none": (0, 24), "autods_tool": (0, 24), "autods_disc": (0, 24),
+    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (0, 24),
+    "term_none_axis": (2, 24), "term_kdisc": (13, 24), "term_kdisc_trim": (0, 24),
+    "term_ktool": (19, 22), "term_kboth": (11, 24),
+    "term_small": (6, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (1, 8),
+    # MLAgentBench, eight repeatable tasks x three attempts
+    "mlab_autods_none": (2, 24), "mlab_autods_file": (9, 24), "mlab_term": (6, 24),
+}
+
+
+def _task_means(vals):
+    return [normalized(v, j) if v is not None else None for j, v in enumerate(vals)]
+
+
+def paired_stats(a, b, n_boot=20000, seed=0):
+    """Paired comparison of two arms over the TabReD tasks on the normalised
+    scale: mean difference, 95% bootstrap interval over tasks, wins on the raw
+    metric, exact two-sided Wilcoxon signed-rank p-value.  Tasks missing in
+    either arm are dropped."""
+    import random
+    from scipy import stats
+    na, nb = _task_means(a), _task_means(b)
+    idx = [j for j in range(len(TASKS)) if na[j] is not None and nb[j] is not None]
+    d = [na[j] - nb[j] for j in idx]
+    wins = sum(1 for j in idx if a[j] != b[j] and (a[j] > b[j]) == HIB[j])
+    rng = random.Random(seed)
+    boots = sorted(st.mean(rng.choices(d, k=len(d))) for _ in range(n_boot))
+    lo, hi = boots[int(0.025 * n_boot)], boots[int(0.975 * n_boot) - 1]
+    p = stats.wilcoxon(d, method="exact").pvalue if len(d) >= 5 and any(x != 0 for x in d) else None
+    return {"diff": st.mean(d), "lo": lo, "hi": hi, "wins": wins, "n": len(idx), "p": p}
+
+
+def friedman_nemenyi():
+    """Friedman test over the 21 methods of the leaderboard on the 8 tasks and
+    the Nemenyi critical difference at alpha = 0.05 (Demsar, 2006)."""
+    import math
+    from scipy import stats
+    from scipy.stats import studentized_range
+    r, pool = ranks()
+    names = list(pool)
+    k, n = len(names), len(TASKS)
+    cols = [[(-pool[m][j] if HIB[j] else pool[m][j]) for j in range(n)] for m in names]
+    fr = stats.friedmanchisquare(*cols)
+    q = studentized_range.ppf(0.95, k, math.inf) / math.sqrt(2)
+    cd = q * math.sqrt(k * (k + 1) / (6 * n))
+    return fr.statistic, fr.pvalue, cd
+
+
+def rank_interval(method, n_boot=20000, seed=1):
+    """95% bootstrap interval of the average rank over tasks."""
+    import random
+    r, _pool = ranks()
+    rng = random.Random(seed)
+    boots = sorted(st.mean(rng.choices(r[method], k=len(r[method]))) for _ in range(n_boot))
+    return boots[int(0.025 * n_boot)], boots[int(0.975 * n_boot) - 1]
+
+
+# Comparisons quoted in the paper and drawn in the ablation figure.
+def comparison_set():
+    grid = lambda c: [GRID[t][2 + c] for t in TASKS]  # noqa: E731
+    return {
+        # architecture, deployed and with the instruction file removed
+        "shipAutoDSvsTerminus": (AGENTS["AutoDS-Tools"], AGENTS["Terminus-2"]),
+        "shipAutoDSvsFedot": (AGENTS["AutoDS-Tools"], AGENTS["FEDOT.LLM"]),
+        "shipFedotvsTerminus": (AGENTS["FEDOT.LLM"], AGENTS["Terminus-2"]),
+        "archAutoDSvsTerminus": (grid(0), [st.mean(MATCHED_ATTEMPTS[t]) for t in TASKS]),
+        "archAutoDSvsTerminusStock": (grid(0), AGENTS["Terminus-2"]),
+        "archAutoDSvsFedot": (grid(0), AGENTS["FEDOT.LLM"]),
+        # the instruction file inside AutoDS-Tools
+        "fileBoth": (grid(3), grid(0)), "fileTool": (grid(1), grid(0)), "fileDisc": (grid(2), grid(0)),
+        # the same file inside Terminus-2
+        "termDisc": (TERM_KDISC, TERM_31B_AXIS), "termTrim": (TERM_KDISC_TRIM, TERM_31B_AXIS),
+        "termTool": (TERM_KTOOL, TERM_31B_AXIS), "termBoth": (TERM_KBOTH, TERM_31B_AXIS),
+        # container image and backbone
+        "image": ([st.mean(MATCHED_ATTEMPTS[t]) for t in TASKS], AGENTS["Terminus-2"]),
+        "termSmall": (TERM_26B, TERM_31B_AXIS), "termBig": (TERM_GLM, TERM_31B_AXIS),
+        "autodsSmall": (AUTODS_26B, AGENTS["AutoDS-Tools"]), "autodsBig": (AUTODS_GLM, AGENTS["AutoDS-Tools"]),
+        # against tuned baselines
+        "autodsVsXGB": (AGENTS["AutoDS-Tools"], PUBLISHED["XGBoost"]),
+        "autodsVsLGBM": (AGENTS["AutoDS-Tools"], PUBLISHED["LightGBM"]),
+        "autodsVsCat": (AGENTS["AutoDS-Tools"], PUBLISHED["CatBoost"]),
+        "autodsVsBest": (AGENTS["AutoDS-Tools"], PUBLISHED["MLP-PLR ens."]),
+        "toolVsXGB": (grid(1), PUBLISHED["XGBoost"]),
+        "toolVsBest": (grid(1), PUBLISHED["MLP-PLR ens."]),
+        "bothVsTool": (grid(3), grid(1)),
+        "terminusVsRF": (AGENTS["Terminus-2"], PUBLISHED["RandomForest"]),
+        "terminusVsLinear": (AGENTS["Terminus-2"], PUBLISHED["Linear"]),
+    }
+
+
 def _macro_name(s):
     """LaTeX macro names admit letters only."""
     return "".join(ch for ch in s if ch.isalpha())
@@ -1687,9 +1794,9 @@ def table_numbers():
 
     # --- the layer given to the open harness -----------------------------------------------
     for label, n, lost, tasks, steps, mins, cost, rel in KDISC_TERM:
-        key = {"neither": "Neither", r"$K_{\text{disc}}$": "Disc",
-               r"$K_{\text{disc}}$, minus time": "Trim",
-               r"$K_{\text{tool}}$": "Tool", "both": "Both"}[label]
+        key = {"neither": "Neither", "discipline": "Disc",
+               "discipline, minus time": "Trim",
+               "library": "Tool", "both": "Both"}[label]
         define(f"kt{key}Trials", str(n)); define(f"kt{key}Lost", str(lost))
         define(f"kt{key}Tasks", str(tasks)); define(f"kt{key}Steps", str(steps))
         define(f"kt{key}Min", f"{mins:.1f}"); define(f"kt{key}Cost", f"{cost:.4f}")
@@ -1770,6 +1877,42 @@ def table_numbers():
     define("gridBothEffMaxTask", max(eff, key=lambda x: x[1])[0])
     define("gridBothEffMedian", f"{st.median(e for _t, e in eff):.2f}")
     define("gridBothEffAboveTwo", str(sum(1 for _t, e in eff if e > 0.020)))
+
+    # --- paired statistics over tasks ----------------------------------------------------------------
+    def fmt_p(p):
+        if p is None:
+            return "--"
+        return f"{p:.3f}" if p >= 0.001 else "<0.001"
+    for key, (a, b) in comparison_set().items():
+        s = paired_stats(a, b)
+        define(f"st{key}Diff", spct(s['diff']))
+        define(f"st{key}Lo", spct(s['lo'])); define(f"st{key}Hi", spct(s['hi']))
+        define(f"st{key}Wins", f"{s['wins']}"); define(f"st{key}N", f"{s['n']}")
+        define(f"st{key}P", fmt_p(s["p"]))
+    chi2, pval, cd = friedman_nemenyi()
+    define("friedmanChi", f"{chi2:.1f}")
+    define("friedmanP", "<0.001" if pval < 0.001 else f"{pval:.3f}")
+    define("nemenyiCD", f"{cd:.1f}")
+    for m, tag in (("AutoDS-Tools", "AutoDS"), ("Terminus-2", "Terminus"), ("FEDOT.LLM", "Fedot"),
+                   ("XGBoost", "XGB"), ("LightGBM", "LGBM"), ("CatBoost", "Cat"), ("MLP-PLR ens.", "Best")):
+        lo, hi = rank_interval(m)
+        define(f"rkLo{tag}", f"{lo:.1f}"); define(f"rkHi{tag}", f"{hi:.1f}")
+    for key, (lost, n) in LOST.items():
+        define("lost" + _macro_name(key.title()), str(lost))
+        define("lostN" + _macro_name(key.title()), str(n))
+    # range of the normalised mean over every choice of one attempt per task
+    import itertools
+    for name, tag in (("Terminus-2", "Terminus"), ("AutoDS-Tools", "AutoDS"), ("FEDOT.LLM", "Fedot")):
+        att = ATTEMPTS[name]
+        means = [st.mean(normalized(v, j) for j, v in enumerate(c))
+                 for c in itertools.product(*[att[t] for t in TASKS])]
+        define(f"attRange{tag}", f"{max(means) - min(means):.2f}")
+        define(f"attLo{tag}", f"{min(means):.2f}"); define(f"attHi{tag}", f"{max(means):.2f}")
+    # sensitivity: the lost AutoDS-Tools attempt scored at the weakest published value
+    worst = min(PUBLISHED[b][0] for b in PUBLISHED)
+    vals = [st.mean(AUTODS_ATTEMPTS[t]) for t in TASKS]
+    vals[0] = st.mean(AUTODS_ATTEMPTS["homesite-insurance"] + [worst])
+    define("sensLostNorm", f"{st.mean(normalized(v, j) for j, v in enumerate(vals)):.2f}")
     return "\n".join(L)
 
 

@@ -79,7 +79,7 @@ def panel_maize(ax):
     ax.set_ylabel("grain yield of field plots, bu/acre")
     ax.set_xlabel(f"one mark = one site in one year ({len(g)} in all)", fontsize=6.5)
     ax.grid(axis="y")
-    ax.set_title("Maize yield: fields the model never saw", **PANEL)
+    ax.set_title("Maize yield in unseen fields", **PANEL)
     ax.scatter([], [], s=10, color=TRAIN_C, label=f"sites used for training")
     ax.scatter([], [], s=10, color=TEST_C, label=f"sites to predict (held out)")
     ax.legend(loc="upper left", handletextpad=0.3)
@@ -106,11 +106,11 @@ def panel_fdata(ax):
     labels = ["1", "2", "3-4", "5-8", "9-16", "17-32", "33-64", "65-128", "129-256",
               "257-512", "513-1k", "1k-4k", ">4k"]
     ax.set_xticks(x)
-    ax.set_xticklabels(labels[:len(g)], rotation=60, ha="right", fontsize=5.5)
+    ax.set_xticklabels(labels[:len(g)], rotation=60, ha="right", fontsize=5)
     ax.set_ylim(60, 100)
     ax.set_xlim(-0.6, len(g) - 0.4)
     ax.set_ylabel("jobs that finished successfully, %")
-    ax.set_xlabel("compute nodes the job asked for (job count in bar)", fontsize=6.5)
+    ax.set_xlabel("compute nodes requested (job count in bar)", fontsize=6.5, labelpad=1)
     ax.grid(axis="y")
     ax.set_title("Fugaku jobs: will this job fail?", **PANEL)
 
@@ -154,12 +154,72 @@ def panel_openpoly(ax):
     ax.legend(loc="upper left", handletextpad=0.3)
 
 
+# ---------------------------------------------------------------- results
+import make_tables as mt  # noqa: E402
+
+RES_ROWS = [  # (label, system, text) from top to bottom
+    ("AutoDS-Tools, with library section", "AutoDS-Tools", "prescribed"),
+    ("Terminus-2, with library section", "Terminus-2", "prescribed"),
+    ("Terminus-2, plain text", "Terminus-2", "plain"),
+    ("FEDOT.LLM, plain text", "FEDOT.LLM", "plain"),
+]
+RES_META = {
+    "maize-yield": ("Pearson $r$ (higher is better)", (0.40, 0.72)),
+    "fdata-exit": ("accuracy (higher is better)", (0.875, 0.965)),
+    "openpoly-tg": ("$R^2$ (higher is better)", (0.40, 0.95)),
+}
+MARK = {"AutoDS-Tools": "D", "Terminus-2": "o", "FEDOT.LLM": "s"}
+
+
+def panel_results(ax, task, first):
+    label, (lo, hi) = RES_META[task]
+    author = mt.CASE_META[task][2]
+    n = len(RES_ROWS)
+    ax.set_ylim(n - 0.5, -0.5)
+    ax.set_xlim(lo, hi)
+    ax.axvline(author, color=INK, lw=0.9, ls="--", zorder=2)
+    ax.text(author, -0.45, f"authors {author:.3f}", ha="center", va="bottom", fontsize=6, color=INK)
+    if task == "fdata-exit":
+        floor = mt.CASE_FLOORS[task]
+        ax.axvline(floor, color=MUTED, lw=0.7, ls=":", zorder=1)
+        ax.text(floor, n - 0.55, "constant", ha="center", va="top", fontsize=5.5, color=MUTED)
+    for i, (lab, system, text) in enumerate(RES_ROWS):
+        key = (task, system, text)
+        if key not in mt.CASES:
+            ax.text((lo + hi) / 2, i, "not applicable", ha="center", va="center", fontsize=6, color=MUTED)
+            continue
+        vals, _mins = mt.CASES[key]
+        col = C[system]
+        got = [v for v in vals if v is not None]
+        lost = len(vals) - len(got)
+        rng = np.random.default_rng(1)
+        for v in got:
+            ax.scatter([v], [i + rng.uniform(-0.12, 0.12)], s=22, marker=MARK[system], color=col,
+                       zorder=4, edgecolor="white", linewidth=0.5)
+        if lost:
+            xs = np.linspace(lo + 0.04 * (hi - lo), lo + 0.04 * (hi - lo) + 0.05 * (hi - lo) * (lost - 1), lost)
+            ax.scatter(xs, [i] * lost, s=24, marker="x", color=col, linewidth=1.1, zorder=4)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([r[0] for r in RES_ROWS] if first else [""] * n, fontsize=6)
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    ax.grid(axis="x")
+    ax.set_xlabel(label, fontsize=6.5)
+
+
 def fig_cases():
-    fig, axes = plt.subplots(1, 3, figsize=(FULL_W, 2.05))
-    panel_maize(axes[0])
-    panel_fdata(axes[1])
-    panel_openpoly(axes[2])
-    fig.subplots_adjust(wspace=0.36)
+    fig = plt.figure(figsize=(FULL_W, 3.7))
+    gs_top = fig.add_gridspec(1, 3, left=0.075, right=0.99, top=0.95, bottom=0.52, wspace=0.40)
+    gs_bot = fig.add_gridspec(1, 3, left=0.20, right=0.99, top=0.27, bottom=0.085, wspace=0.22)
+    top = [fig.add_subplot(gs_top[0, k]) for k in range(3)]
+    panel_maize(top[0]); panel_fdata(top[1]); panel_openpoly(top[2])
+    bottom = [fig.add_subplot(gs_bot[0, k]) for k in range(3)]
+    for k, task in enumerate(["maize-yield", "fdata-exit", "openpoly-tg"]):
+        panel_results(bottom[k], task, first=(k == 0))
+    fig.text(0.075, 0.955, "a", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
+    fig.text(0.02, 0.305, "b", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
+    fig.text(0.04, 0.305, "Every attempt against the author baseline (dashed); cross: no submission",
+             ha="left", va="bottom", fontsize=6.5)
     save(fig, "fig_cases")
 
 

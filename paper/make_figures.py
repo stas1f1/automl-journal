@@ -335,9 +335,9 @@ def fig_signflip():
 # Fig. kdiscterm: the layer handed to the open harness
 # ======================================================================
 def fig_kdiscterm():
-    names = {"neither": "no layer", r"$K_{\text{disc}}$": "$K_{\\mathrm{disc}}$",
-             r"$K_{\text{disc}}$, minus time": "$K_{\\mathrm{disc}}$,\ntime clauses\nremoved",
-             r"$K_{\text{tool}}$": "$K_{\\mathrm{tool}}$", "both": "both"}
+    names = {"neither": "no file", "discipline": "discipline",
+             "discipline, minus time": "discipline,\ntime advice\nremoved",
+             "library": "library", "both": "both"}
     cells = mt.KDISC_TERM
     fig, axes = plt.subplots(2, 1, figsize=(COL_W, 2.9), sharex=True)
     x = np.arange(len(cells))
@@ -568,7 +568,237 @@ def fig_ranks():
           "layer off", round(rank_nolayer, 2))
 
 
+# ======================================================================
+# fig_leaderboard (Figure 2 of the remaster, 3 October 2026): a ranked list
+# of the 21 methods on the left, the eight tasks on one normalised axis on
+# the right.  Replaces fig_ranks, whose per-task strips in raw units needed
+# end labels and four rows per task.
+# ======================================================================
+PUB_DOT = "#b0b0b0"
+GBDT_DOT = "#3a3a3a"
+BAND = "#e6e6e6"
+SYS_MARK = {"AutoDS-Tools": ("D", C["AutoDS-Tools"]), "Terminus-2": ("o", C["Terminus-2"]),
+            "FEDOT.LLM": ("s", C["FEDOT.LLM"])}
+NOFILE = "AutoDS-Tools, no file"
+
+
+def _sys_marker(ax, x, y, name, filled=True, size=26, z=6):
+    mk, col = SYS_MARK[name]
+    if filled:
+        ax.scatter([x], [y], s=size, marker=mk, color=col, zorder=z, edgecolor="white", linewidth=0.5)
+    else:
+        ax.scatter([x], [y], s=size, marker=mk, facecolor="white", edgecolor=col, linewidth=1.0, zorder=z)
+
+
+def lb_rank_panel(ax):
+    r, pool = mt.ranks()
+    avg = {m: st.mean(r[m]) for m in pool}
+    nolayer = [mt.GRID[t][2] for t in mt.TASKS]
+    # rank of AutoDS-Tools with the file removed, computed in place of the deployed row
+    pool2 = {**mt.PUBLISHED, "Terminus-2": mt.AGENTS["Terminus-2"],
+             "FEDOT.LLM": mt.AGENTS["FEDOT.LLM"], "AutoDS-Tools": nolayer}
+    rk_nofile = rk_avg_rank(pool2)["AutoDS-Tools"]
+    entries = [(m, avg[m]) for m in pool] + [(NOFILE, rk_nofile)]
+    entries.sort(key=lambda e: e[1])
+    n = len(entries)
+    ax.set_ylim(n - 0.4, -0.6)
+    ax.set_xlim(0.5, 21.5)
+    ax.set_xticks([1, 5, 10, 15, 20])
+    ax.set_xlabel("Average rank over the eight tasks (1 = best)")
+    ax.grid(axis="x")
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    labels = []
+    for i, (m, x) in enumerate(entries):
+        if m in mt.AGENTS or m == NOFILE:
+            sysname = "AutoDS-Tools" if m == NOFILE else m
+            if m != NOFILE:
+                lo, hi = mt.rank_interval(m)
+                ax.plot([lo, hi], [i, i], color=SYS_MARK[sysname][1], lw=1.2, zorder=5,
+                        solid_capstyle="butt")
+            _sys_marker(ax, x, i, sysname, filled=(m != NOFILE), size=30)
+            xr = hi if m != NOFILE else x
+            ax.text(xr + 0.45, i, f"{x:.1f}", ha="left", va="center", fontsize=6,
+                    color=SYS_MARK[sysname][1], fontweight="bold")
+            labels.append((m, True, SYS_MARK[sysname][1]))
+        else:
+            gb = m in GBDT
+            ax.scatter([x], [i], s=16 if gb else 11, color=GBDT_DOT if gb else PUB_DOT, zorder=4)
+            labels.append((m, gb, INK if gb else MUTED))
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([m for m, _b, _c in labels], fontsize=6.3)
+    for tick, (_m, bold, col) in zip(ax.get_yticklabels(), labels):
+        tick.set_color(col)
+        if bold:
+            tick.set_fontweight("bold")
+
+
+def lb_task_panel(ax):
+    n = len(mt.TASKS)
+    nolayer = [mt.GRID[t][2] for t in mt.TASKS]
+    ax.set_ylim(n - 0.4, -0.7)
+    ax.set_xlim(-0.12, 1.5)
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5])
+    ax.set_xticklabels(["0", "", "0.5", "", "1", "", "1.5"])
+    ax.set_xlabel("Normalised score (0 = weakest, 1 = strongest published method)")
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    for x in (0.0, 1.0):
+        ax.axvline(x, color="#9a9a9a", lw=0.7, zorder=1)
+    dy = {"AutoDS-Tools": -0.22, "Terminus-2": 0.0, "FEDOT.LLM": 0.22}
+    for j, task in enumerate(mt.TASKS):
+        pub = [mt.normalized(mt.PUBLISHED[b][j], j) for b in mt.PUBLISHED]
+        q1, q3 = np.percentile(pub, [25, 75])
+        ax.add_patch(plt.Rectangle((q1, j - 0.38), q3 - q1, 0.76, color=BAND, zorder=0, lw=0))
+        for b in GBDT:
+            x = mt.normalized(mt.PUBLISHED[b][j], j)
+            ax.plot([x, x], [j - 0.38, j + 0.38], color=GBDT_DOT, lw=1.0, zorder=2)
+        for a in mt.AGENTS:
+            att = [mt.normalized(v, j) for v in mt.ATTEMPTS[a][task]]
+            y = j + dy[a]
+            ax.plot([min(att), max(att)], [y, y], color=SYS_MARK[a][1], lw=1.0, zorder=5)
+            _sys_marker(ax, mt.normalized(mt.AGENTS[a][j], j), y, a)
+        _sys_marker(ax, mt.normalized(nolayer[j], j), j + dy["AutoDS-Tools"], "AutoDS-Tools", filled=False)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([f"{s}  ({m})" for s, m in zip(mt.SHORT, mt.METRIC)], fontsize=6.3)
+    for j in range(n - 1):
+        ax.axhline(j + 0.5, color=GRID_C, lw=0.5, zorder=0)
+
+
+def fig_leaderboard():
+    fig = plt.figure(figsize=(FULL_W, 3.75))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.35], left=0.145, right=0.995,
+                          top=0.85, bottom=0.11, wspace=0.40)
+    ax_a = fig.add_subplot(gs[0]); ax_b = fig.add_subplot(gs[1])
+    lb_rank_panel(ax_a); lb_task_panel(ax_b)
+    for ax, letter, head in ((ax_a, "a", "Leaderboard by average rank"),
+                             (ax_b, "b", "Each task on the normalised scale")):
+        ax.text(-0.02, 1.015, letter, transform=ax.transAxes, ha="right", va="bottom",
+                fontsize=8.5, fontweight="bold")
+        ax.text(0.0, 1.015, head, transform=ax.transAxes, ha="left", va="bottom", fontsize=7)
+    handles = [
+        Line2D([], [], marker="D", color=C["AutoDS-Tools"], ls="", ms=4.5, label="AutoDS-Tools"),
+        Line2D([], [], marker="D", mfc="white", mec=C["AutoDS-Tools"], ls="", ms=4.5,
+               label="AutoDS-Tools without its instruction file"),
+        Line2D([], [], marker="o", color=C["Terminus-2"], ls="", ms=4.5, label="Terminus-2"),
+        Line2D([], [], marker="s", color=C["FEDOT.LLM"], ls="", ms=4.5, label="FEDOT.LLM"),
+        Line2D([], [], marker="|", color=GBDT_DOT, ls="", ms=7, mew=1.0,
+               label="tuned XGBoost, LightGBM, CatBoost"),
+        plt.Rectangle((0, 0), 1, 1, color=BAND, label="middle half of the 18 published methods"),
+    ]
+    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, fontsize=6.3,
+               handletextpad=0.4, columnspacing=1.4, bbox_to_anchor=(0.56, 1.0))
+    fig.subplots_adjust(top=0.84)
+    save(fig, "fig_leaderboard")
+
+
+# ======================================================================
+# fig_ablations (Figure 3 of the remaster): every factor the paper varies,
+# as the paired difference on the normalised scale with a 95% bootstrap
+# interval over tasks, and the share of trials that ended without a
+# submission.  One figure answers "what moves the result".
+# ======================================================================
+ABL_ROWS = [
+    # (group header or None, label, comparison key, system colour, lost key treated, lost key reference)
+    ("Harness alone (instruction file removed, same image)", None, None, None, None, None),
+    (None, "AutoDS-Tools vs Terminus-2", "archAutoDSvsTerminus", "AutoDS-Tools", "autods_none", "term_enriched"),
+    (None, "FEDOT.LLM vs Terminus-2", "shipFedotvsTerminus", "FEDOT.LLM", "fedot", "term_stock"),
+    (None, "AutoDS-Tools vs FEDOT.LLM", "archAutoDSvsFedot", "AutoDS-Tools", "autods_none", None),
+    ("Instruction file inside AutoDS-Tools", None, None, None, None, None),
+    (None, "whole file", "fileBoth", "AutoDS-Tools", "autods_both", "autods_none"),
+    (None, "library part only", "fileTool", "AutoDS-Tools", "autods_tool", "autods_none"),
+    (None, "training-discipline part only", "fileDisc", "AutoDS-Tools", "autods_disc", "autods_none"),
+    ("Same file appended to the Terminus-2 task", None, None, None, None, None),
+    (None, "whole file", "termBoth", "Terminus-2", "term_kboth", "term_none_axis"),
+    (None, "library part only", "termTool", "Terminus-2", "term_ktool", "term_none_axis"),
+    (None, "training-discipline part only", "termDisc", "Terminus-2", "term_kdisc", "term_none_axis"),
+    (None, "discipline part, time advice deleted", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
+    ("Container image (Terminus-2)", None, None, None, None, None),
+    (None, "libraries pre-installed vs stock", "image", "Terminus-2", "term_enriched", "term_stock"),
+    ("Backbone model", None, None, None, None, None),
+    (None, "Terminus-2: gemma-4-26b-a4b vs 31b", "termSmall", "Terminus-2", "term_small", "term_none_axis"),
+    (None, "Terminus-2: glm-4.7 vs gemma-4-31b", "termBig", "Terminus-2", "term_big", "term_none_axis"),
+    (None, "AutoDS-Tools: gemma-4-26b-a4b vs 31b", "autodsSmall", "AutoDS-Tools", "autods_small", "autods_both"),
+    (None, "AutoDS-Tools: glm-4.7 vs gemma-4-31b", "autodsBig", "AutoDS-Tools", "autods_big", "autods_both"),
+    ("Instruction file inside AutoDS-Tools on MLAgentBench", None, None, None, None, None),
+    (None, "whole file (a working script is supplied)", None, "AutoDS-Tools", "mlab_autods_file", "mlab_autods_none"),
+]
+ABL_XLIM = (-0.32, 0.32)
+ABL_XMAX = 0.40   # axis end, leaves room for the win counts
+
+
+def fig_ablations():
+    comps = mt.comparison_set()
+    rows = ABL_ROWS
+    n = len(rows)
+    fig = plt.figure(figsize=(FULL_W, 4.3))
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 0.36], left=0.33, right=0.985,
+                          top=0.93, bottom=0.10, wspace=0.10)
+    ax = fig.add_subplot(gs[0]); ax2 = fig.add_subplot(gs[1], sharey=ax)
+    ax.set_ylim(n - 0.5, -0.5)
+    ax.set_xlim(ABL_XLIM[0], ABL_XMAX)
+    ax.set_xticks([-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3])
+    ax.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax.set_xlabel("Difference in mean normalised score (95% bootstrap interval over tasks)")
+    ax.grid(axis="x")
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    ax2.set_xlim(0, 100)
+    ax2.set_xticks([0, 50, 100])
+    ax2.set_xlabel("No submission, % of trials")
+    ax2.tick_params(axis="y", length=0, labelleft=False)
+    ax2.spines["left"].set_visible(False)
+    ax2.grid(axis="x")
+    labels = []
+    for i, (head, label, key, sysname, lk_t, lk_r) in enumerate(rows):
+        if head:
+            labels.append((head, True))
+            for a in (ax, ax2):
+                a.axhspan(i - 0.5, i + 0.5, color="#f3f3f3", lw=0, zorder=0)
+            continue
+        labels.append(("    " + label, False))
+        col = C[sysname]
+        if key is None:
+            ax.text(0, i, "scores stay in the task metrics (MLAgentBench table)", ha="center", va="center",
+                    fontsize=6, color=MUTED, style="italic")
+            lost, tot = mt.LOST[lk_t]
+            ax2.barh(i, 100 * lost / tot, height=0.6, color=col, zorder=3)
+            ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
+            lost, tot = mt.LOST[lk_r]
+            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
+            continue
+        s = mt.paired_stats(*comps[key])
+        lo, hi = max(s["lo"], ABL_XLIM[0]), min(s["hi"], ABL_XLIM[1])
+        ax.plot([lo, hi], [i, i], color=col, lw=1.3, zorder=4, solid_capstyle="butt")
+        for v, side in ((s["lo"], -1), (s["hi"], 1)):
+            if v < ABL_XLIM[0] or v > ABL_XLIM[1]:   # interval runs off the axis
+                ax.annotate("", xy=(ABL_XLIM[1] if side > 0 else ABL_XLIM[0], i),
+                            xytext=((ABL_XLIM[1] - 0.02) if side > 0 else (ABL_XLIM[0] + 0.02), i),
+                            arrowprops=dict(arrowstyle="-|>", color=col, lw=1.0, mutation_scale=6))
+        x = min(max(s["diff"], ABL_XLIM[0] + 0.005), ABL_XLIM[1] - 0.005)
+        ax.scatter([x], [i], s=22, color=col, zorder=6, edgecolor="white", linewidth=0.5)
+        ax.text(ABL_XLIM[1] + 0.015, i, f"{s['wins']}/{s['n']}", ha="left", va="center",
+                fontsize=6, color=MUTED)
+        if lk_t:
+            lost, tot = mt.LOST[lk_t]
+            ax2.barh(i, 100 * lost / tot, height=0.6, color=col, zorder=3)
+            ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
+        if lk_r:
+            lost, tot = mt.LOST[lk_r]
+            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
+    ax.text(ABL_XLIM[1] + 0.015, -0.6, "tasks\nbetter", ha="left", va="bottom", fontsize=6, color=MUTED)
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([t for t, _h in labels], fontsize=6.4)
+    for tick, (_t, head) in zip(ax.get_yticklabels(), labels):
+        if head:
+            tick.set_fontweight("bold")
+    ax.text(0, 1.012, "Accuracy", transform=ax.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
+    ax2.text(0, 1.012, "Reliability", transform=ax2.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
+    ax2.text(1.0, 1.012, "| reference", transform=ax2.transAxes, ha="right", va="bottom",
+             fontsize=6, color="#555555")
+    save(fig, "fig_ablations")
+
 if __name__ == "__main__":
     for fn in (fig_position, fig_heatmap, fig_grid, fig_modelaxis, fig_walltime,
-               fig_signflip, fig_kdiscterm, fig_ranks):
+               fig_signflip, fig_kdiscterm, fig_ranks, fig_leaderboard, fig_ablations):
         fn()

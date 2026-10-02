@@ -1,73 +1,57 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-% STAGE 4: shortened 21 September 2026; the numbers stay in Section 1 and in
-% the Observation paragraphs, the conclusion names systems and baselines.
+% Remaster, 3 October 2026.
 
-We isolated the architectural axis of agentic AutoML by holding the model
-fixed and varying only the system around it, and we measured the result
-against Optuna-tuned reference methods. Under one open 31B model the three
-systems as deployed span $\spanShip$ on the normalised scale, from Terminus-2
-to AutoDS-Tools at the level of tuned LightGBM, and no system reaches tuned
-XGBoost or the strongest published method. What remains between AutoDS-Tools
-and tuned XGBoost is search: Terminus-2 selects gradient boosting unaided and
-writes one configuration, AutoDS-Tools hands the choice to LightAutoML, whose
-tuning of a fixed model gains little, and FEDOT.LLM, whose backend searches
-over models, beats every published method on one task and is level with
-Terminus-2 over the eight.
+We asked where the accuracy of LLM-agent AutoML comes from, and measured the
+three candidates separately: the harness, the instruction file and the
+backbone, with one open 31B model, eight real-world tabular tasks under
+temporal shift, and eighteen Optuna-tuned reference methods as the yardstick.
 
-Most of the six-agent system's lead over the open harness comes from the
-instruction file it ships with (Section~\ref{sec:grid}), so the useful
-question is which decision a piece of structure removes.
-Constraint pays where it overrides a default the weak model gets wrong, and
-costs where the default was already right. The same instruction file that
-improves every TabReD task, where the agent starts from scratch, leaves
-AutoDS-Tools with no submission on \mlabWiped{} of \mlabRepeated{} MLAgentBench
-tasks, where a working script was already in place. Appended to the Terminus-2
-task text it ends \ktBothLost{} of \ktBothTrials{} trials without a
-submission, because the agent gives up on a fit that is still running. An
-instruction file measured in one architecture has not been
-measured in another, and we suggest this is the source of the disagreement
-among published ablations of knowledge injection.
+The harness changes accuracy little. A fixed-stage workflow, a six-agent
+system and a minimal shell agent lie within $\spanArch$ of each other on the
+normalised scale once the instruction file is removed, the range one harness
+covers over its own attempts, and no pairwise difference reaches
+significance over the eight tasks. The harness changes everything else:
+AutoDS-Tools spends $\costRatioMin\times$ the wall-clock of Terminus-2,
+Terminus-2 leaves more attempts without a submission, and FEDOT.LLM can
+attempt tabular tasks only.
 
-For practitioners the results give one rule per situation.
-\begin{itemize}
-\setlength{\itemsep}{0pt}
-\item A strong tuned baseline exists: use it. The best system reaches tuned
-  LightGBM and none reaches tuned XGBoost, and what separates them is
-  hyperparameter search, which no system performs.
-\item A tabular task from scratch, accuracy first, an hour per task
-  acceptable: AutoDS-Tools with its instruction file. Without the file its
-  lead over Terminus-2 is $\gapAgentsOff$ on the normalised scale, within the
-  noise floor.
-\item A first pass over a new scientific dataset, minutes per attempt:
-  Terminus-2 with the task text alone. It matched or beat two author
-  baselines and found the published featurisation on OpenPoly; every library
-  or training-time instruction we added cost it trials.
-\item A tabular task where search over a fixed backend pays: FEDOT.LLM,
-  level with Terminus-2 on TabReD, best of the three on \texttt{ecom-offers}
-  and on F-DATA, at $\minFedotTabredMin$ to $\minFedotTabredMax$ minutes a
-  task with the column types supplied.
-\item A working script is supplied: prescribe nothing. The file that improved
-  all eight TabReD tasks left no submission on \mlabWiped{} of
-  \mlabRepeated{} MLAgentBench tasks.
-\end{itemize}
-Three rules hold across at least two protocols and we state them in general
-form. Prescribe only the decision the model would otherwise get wrong. Keep
-advice about training time out of the prompt of any system with a hard time
-limit: deleting two such paragraphs restored all \ktTrimTrials{} Terminus-2
-trials. Search over models where the budget allows it: the one backend that
-does so beats a published leaderboard on one task, while tuning a fixed model
-inside AutoDS-Tools gained little. That the instruction file moves the result further
-than a \axPriceSpread$\times$ backbone swap (Section~\ref{sec:modelaxis})
-rests on three models, two from one vendor, and we report it as a result on
-this domain without raising it to a rule.
+The instruction file is what changes accuracy, and the change is
+conditional. Inside the harness it was written for, from scratch, it
+improves all eight tasks and lifts the system to the level of tuned
+LightGBM; its library part alone reaches the level of tuned XGBoost.
+Appended to Terminus-2 it ends \ktDiscLost{} of 24 trials without a
+submission with its discipline part, through two paragraphs about training
+time, and \ktToolLost{} of \ktToolTrials{} with its library part, through a
+fit the agent does not wait for; applied where a working script already
+exists it ends every attempt on \mlabWiped{} of \mlabRepeated{} tasks. An
+instruction file is therefore part of the system under test and has to be
+measured in each harness and from each starting point.
+
+What separates all configurations from the strongest published method is
+search over hyperparameters, which no agent performs. The best cell is
+level with tuned XGBoost and every cell is well below the MLP-PLR ensemble
+that leads the benchmark; the one harness whose backend searches over
+models beats every published method on one task. On three published
+scientific tasks the minimal harness with the task text alone beat the
+author baseline on two within minutes.
+
+For the reading of agent leaderboards the result is direct: a leaderboard
+over one harness measures the instructions that ship with it as much as the
+model, and a scaffold is neutral only once its instruction file has been
+measured. Two experiments follow from the traces and we have not run them:
+adding hyperparameter search to each harness under the same budget, to see
+how much of the gap to tuned XGBoost it closes, and disabling the repair
+loop of AutoDS-Tools in both branches, to measure the cost of the
+instruction file without it. All tasks, instruction files, traces and
+scripts are released.
 
 \section*{Data availability}
 
 \begin{sloppypar}
-All tasks, both instruction variants and every execution trace behind these
-numbers are public. The benchmark adaptations and the instruction files are
+All tasks, the instruction file in every variant used, and every execution
+trace behind these numbers are public. The benchmark adaptations and the instruction files are
 on HuggingFace as \texttt{danil-e/harbor-datasets-tabred} and
 \texttt{danil-e/harbor-datasets-mlab}; the tabular adapter is
 \texttt{AaLexUser/harbor-tabred-adapter}. Trajectories, submissions, scorer
@@ -80,7 +64,7 @@ the copy built on the FEDOT image; the repeats are
 released in the data package with the
 consolidated metric table, the per-task tables behind every summary, the
 learner extraction of Section~\ref{sec:spontaneous}, the telemetry of
-Table~\ref{tab:cost}, the fingerprint of the layer, and the scripts
+Table~\ref{tab:cost}, the byte lengths and hashes of every instruction-file variant, and the scripts
 that produce every table and figure.
 \end{sloppypar}
 \todo{repository DOI once deposited}

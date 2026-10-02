@@ -1,227 +1,183 @@
-\section{Experimental design}
+\section{Experimental setup}
 \label{sec:design}
 
-% STAGE 3: rewritten 8 September 2026.  Table~\ref{tab:arms} is new: one row
-% per experimental arm, so the reader has a map of every run in the paper.
+% Remaster, 3 October 2026.  Table~\ref{tab:arms} maps every configuration
+% in the paper to the section that reports it.
 
-\subsection{Factors and arms}
+\subsection{Factors and configurations}
 
-The design varies five factors. \textbf{Architecture}: FEDOT.LLM, AutoDS-Tools,
-Terminus-2. \Ktool{} and \Kdisc{}: each on or off, crossed on AutoDS-Tools and Terminus-2.
-Terminus-2 ships no prescription of its own, so the halves of the AutoDS-Tools
-layer are appended to its task file. \textbf{Backbone}:
-\texttt{gemma-4-31b-it} throughout. AutoDS-Tools and Terminus-2 are also run
+Five factors are varied. \textbf{Harness}: FEDOT.LLM, AutoDS-Tools,
+Terminus-2. \textbf{Instruction file}: the library and the discipline
+instruction of Section~\ref{sec:file}, each on or off, crossed in a full
+$2\times2$ on AutoDS-Tools and on Terminus-2; for Terminus-2 the
+byte-identical text is appended to the task statement. \textbf{Backbone}:
+\texttt{gemma-4-31b-it} throughout; AutoDS-Tools and Terminus-2 are also run
 on a smaller model of the same family, \texttt{gemma-4-26b-a4b-it}, and on a
-larger one from another family, \texttt{glm-4.7}, because the Gemma family has
-nothing larger than 31B, so the upper point differs in family as well as in
-size. Starting point: greenfield, where the agent receives the task statement alone,
-and improve-a-baseline, where it also receives a working training script. Provisioning, the container image, is varied once, on Terminus-2. Swapping the
-stock image for the enriched one changes the installed libraries and leaves the
-instruction unchanged. Table~\ref{tab:arms} lists every arm these factors produce, with
-the number of trials and the section that reports it.
+larger one from another family, \texttt{glm-4.7}, because the Gemma family
+has nothing larger than 31B. \textbf{Starting point}: from scratch, where
+the agent receives the task statement and the data (TabReD and the case
+studies), and from a working script, where it also receives a weak training
+script to improve (MLAgentBench). \textbf{Container image}: the benchmark's
+stock image or the enriched image built for AutoDS-Tools, which adds the
+libraries its instruction file names; varied once, on Terminus-2.
+Table~\ref{tab:arms} lists every configuration with its number of trials.
+Throughout, a \emph{trial} is one attempt at one task, a \emph{cell} is one
+configuration run over all tasks of a benchmark, and a \emph{job} is one
+Harbor execution of a cell; every cell has three attempts per task unless
+stated.
 
 \begin{table*}[t]
 \centering
-\caption{Every experimental arm in the paper. A trial is one attempt at one task; TabReD arms cover eight tasks, MLAgentBench arms the ten tasks of the benchmark, of which eight could be run three times on our hardware (Section~\ref{sec:coverage}). Stock: the benchmark's own image; enriched: the image built for AutoDS-Tools, with the libraries its layer names. Welded in: the library choice is fixed by the architecture (Section~\ref{sec:axis}); trimmed: the discipline half without its two clauses about training time (Section~\ref{sec:kdiscterm}). FEDOT image: the image built for FEDOT.LLM (Section~\ref{sec:deviations}).}
+\caption{Every configuration in the paper. TabReD cells cover eight tasks,
+MLAgentBench cells all ten tasks; the tables report the eight that repeat on
+our hardware (Section~\ref{sec:coverage}). Enriched: the image built for AutoDS-Tools,
+with the libraries its instruction file names. Trimmed: the discipline
+instruction without its two paragraphs about training time.}
 \label{tab:arms}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{lllllrl}
 \toprule
-System & Benchmark & Layer & Image & Backbone & Trials & Reported in \\
+Harness & Benchmark & Instruction file & Image & Backbone & Trials & Reported in \\
 \midrule
-FEDOT.LLM    & TabReD & welded in & FEDOT image & gemma-4-31b & 24 & \S\ref{sec:halfrange} \\
-Terminus-2   & TabReD & none & stock & gemma-4-31b & 24 & \S\ref{sec:halfrange} \\
-Terminus-2   & TabReD & none & enriched & gemma-4-31b & 24 & \S\ref{sec:matched} \\
-Terminus-2   & TabReD & none, \Kdisc{}, \Ktool{}, both, \Kdisc{} trimmed & enriched & gemma-4-31b & $5\times24$ & \S\ref{sec:kdiscterm} \\
-Terminus-2   & TabReD & none & enriched & gemma-4-26b-a4b, glm-4.7 & $2\times24$ & \S\ref{sec:modelaxis} \\
-AutoDS-Tools & TabReD & none, \Kdisc{}, \Ktool{}, both & enriched & gemma-4-31b & $4\times24$ & \S\ref{sec:halfrange}, \S\ref{sec:grid} \\
-AutoDS-Tools & TabReD & both & enriched & gemma-4-26b-a4b, glm-4.7 & $24+8$ & \S\ref{sec:modelaxis} \\
+FEDOT.LLM    & TabReD & library built in & FEDOT image & gemma-4-31b & 24 & \S\ref{sec:leaderboard} \\
+Terminus-2   & TabReD & none & stock & gemma-4-31b & 24 & \S\ref{sec:leaderboard} \\
+Terminus-2   & TabReD & none & enriched & gemma-4-31b & 24 & \S\ref{sec:abl-image} \\
+Terminus-2   & TabReD & none, library, discipline, both, discipline trimmed & enriched & gemma-4-31b & $5\times24$ & \S\ref{sec:abl-terminus} \\
+Terminus-2   & TabReD & none & enriched & gemma-4-26b-a4b, glm-4.7 & $2\times24$ & \S\ref{sec:abl-backbone} \\
+AutoDS-Tools & TabReD & none, library, discipline, both & enriched & gemma-4-31b & $4\times24$ & \S\ref{sec:leaderboard}, \S\ref{sec:abl-file} \\
+AutoDS-Tools & TabReD & both & enriched & gemma-4-26b-a4b, glm-4.7 & $24+8$ & \S\ref{sec:abl-backbone} \\
 \midrule
-AutoDS-Tools & MLAgentBench & none & enriched & gemma-4-31b & 30 & \S\ref{sec:headtohead}, \S\ref{sec:signflip} \\
-AutoDS-Tools & MLAgentBench & both & enriched & gemma-4-31b & 30 & \S\ref{sec:signflip} \\
-Terminus-2   & MLAgentBench & none & stock & gemma-4-31b & 24 & \S\ref{sec:headtohead} \\
-FEDOT.LLM    & MLAgentBench & welded in & stock & gemma-4-31b & 2 & \S\ref{sec:coverage} \\
+AutoDS-Tools & MLAgentBench & none, both & enriched & gemma-4-31b & $2\times30$ & \S\ref{sec:mlab}, \S\ref{sec:abl-script} \\
+Terminus-2   & MLAgentBench & none & stock & gemma-4-31b & 24 & \S\ref{sec:mlab} \\
 \midrule
-AutoDS-Tools & three case studies & maximal, hand-written & enriched & gemma-4-31b & 3 & \S\ref{sec:cases} \\
-Terminus-2   & three case studies & none, maximal & enriched & gemma-4-31b & $2\times9$ & \S\ref{sec:cases} \\
-FEDOT.LLM    & two tabular cases & welded in & FEDOT image & gemma-4-31b & $2\times3$ & \S\ref{sec:cases} \\
+AutoDS-Tools & three case studies & case text with library section & enriched & gemma-4-31b & 3 & \S\ref{sec:cases} \\
+Terminus-2   & three case studies & case text with and without the library section & enriched & gemma-4-31b & $2\times9$ & \S\ref{sec:cases} \\
+FEDOT.LLM    & two tabular cases & library built in & FEDOT image & gemma-4-31b & $2\times3$ & \S\ref{sec:cases} \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\subsection{Benchmarks and reference points}
+\subsection{Benchmarks, reference methods and metrics}
 \label{sec:benchmarks}
 
-\textbf{TabReD} contributes eight real-world tabular tasks with temporal
-splits~\citep{rubachev2024tabred} and a published reference table of eighteen
-methods: gradient boosting implementations~\citep{chen2016xgboost,ke2017lightgbm,prokhorenkova2018catboost},
-tabular deep learning architectures, ensembles and retrieval-augmented models,
-each tuned with Optuna~\citep{akiba2019optuna} on the official validation split
-and averaged over fifteen seeds. Metrics are ROC-AUC for classification and
-RMSE in raw target units for regression. The benchmark ships no agentic
-protocol, so tasks are solved from scratch: this is the greenfield condition.
-Every TabReD result in the paper is read against the reference table in two
-ways: as an average rank among the published methods and the agents, and on a
-normalised scale. For a task $j$ with score $s$ the normalised score is
-$n_j(s) = (s - w_j)/(b_j - w_j)$, where $w_j$ and $b_j$ are the weakest and the
-strongest published values on that task, so that $0$ is the weakest and $1$ the
-strongest published method; for RMSE the weakest value is the largest. The mean
-over the eight tasks has no floor, so a system below the weakest published
-method on one task can score below $0$ there.
+\textbf{TabReD}~\citep{rubachev2024tabred} contributes eight real-world
+tabular tasks with temporal train, validation and test splits (three
+classification tasks scored by ROC-AUC, five regression tasks scored by
+RMSE in raw target units) and a published table of eighteen methods:
+XGBoost, LightGBM, CatBoost~\citep{chen2016xgboost,ke2017lightgbm,prokhorenkova2018catboost},
+random forest, linear models, tabular deep networks, ensembles and
+retrieval-augmented models, each tuned with Optuna~\citep{akiba2019optuna}
+on the validation split and averaged over fifteen seeds. All agents run on
+the official splits through one data adapter and are scored with the
+official metric. The agents receive the labelled validation split, which
+the published methods used for tuning only; this small advantage to the
+agents works against the paper's conclusions. We read every TabReD result in two ways, following the
+AutoML benchmark convention~\citep{gijsbers2024amlb}: as the average rank
+among the eighteen published methods and the agents, and as a
+\emph{normalised score}. For task $j$ with raw score $s$ the normalised score
+is $n_j(s) = (s - w_j)/(b_j - w_j)$, where $w_j$ and $b_j$ are the weakest and
+the strongest published values on that task, so that $0$ is the weakest and
+$1$ the strongest published method; a value above $1$ or below $0$ lies
+outside the published range. We report the mean of $n_j$ over the eight
+tasks.
 
-\textbf{MLAgentBench} contributes ten tasks spanning tabular, text, vision and
-graph data~\citep{huang2024mlagentbench}. Each supplies a working but weak
-training script and asks the agent to improve it: this is the
-improve-a-baseline condition. MLAgentBench publishes no reference table, and the literature offers none at
-the granularity we would need. MLAgentBench scores therefore stay in each
-task's own metric, with no external ceiling to normalise against. Every MLAgentBench number in the paper compares two of our own runs under
-identical conditions, for example AutoDS-Tools with the layer on against the
-same system with it off, or AutoDS-Tools against Terminus-2 on the same task.
-The normalised scale of Section~\ref{sec:ceiling} is used for TabReD only.
+\textbf{MLAgentBench}~\citep{huang2024mlagentbench} contributes ten tasks
+over tabular, text, vision and graph data. Each supplies a working but weak
+training script and asks the agent to improve it. The benchmark publishes no
+reference table, so its scores stay in each task's own metric and every
+MLAgentBench comparison in the paper is between two of our own runs under
+identical conditions.
 
-\textbf{Three scientific case studies}, published studies with author-reported
-baselines, test external validity outside benchmark conditions
-(Section~\ref{sec:cases}). Their instructions prescribe more than any other condition in the paper: the
-library, the featurisation, the leakage handling and the baseline to beat. They
-are therefore the most heavily prescribed point on the axis of
-Section~\ref{sec:axis}. Terminus-2 runs on the full instruction and on the same instruction with the
-library section removed. The case studies thus cross tool prescription with
-architecture a second time, after TabReD (Sections~\ref{sec:grid}
-and~\ref{sec:kdiscterm}).
+\textbf{Three scientific case studies} with author-reported baselines test
+the systems outside benchmark conditions (Section~\ref{sec:cases}): maize
+yield prediction~\citep{kick2023yield}, supercomputer job failure
+prediction~\citep{antici2025fdata} and polymer glass-transition temperature
+prediction~\citep{wang2025openpoly}.
 
-\subsection{Execution environment and provisioning}
+\subsection{Execution environment}
 
-All runs execute inside the Harbor framework~\citep{harbor2026}, which records
-for every trial the submission, the scorer output, the number of attempts and
-errors, the wall-clock time, the token counts and the monetary cost. Cost and
-attempts are therefore reported alongside accuracy throughout.
-All backbones were called through OpenRouter, under the identifiers
-\texttt{google/gemma-4-31b-it}, \texttt{google/gemma-4-26b-a4b-it} and
-\texttt{z-ai/glm-4.7}, at the providers' default sampling settings; the paper
-sets no temperature or context limit of its own. Costs are the per-request
-figures OpenRouter reports, checked against the key balance to within $1.5\%$
-on one cell; for \texttt{gemma-4-31b-it} the list price was \$0.09 per
-million input and \$0.34 per million output tokens. The hub jobs ran in July and August 2026 and
-the repeats on our hardware in August and September 2026, under Harbor~0.22.
+All runs execute in the Harbor framework~\citep{harbor2026}, version 0.22,
+which records for every trial the submission, the output of the scorer (the
+benchmark's own verifier), the number of agent steps and errors, wall-clock
+time, token counts and cost. Cells that are compared with each other ran on
+one machine at one concurrency setting (number of trials in parallel), which
+the sections state. Backbones
+are called through OpenRouter at the providers' default sampling settings;
+for \texttt{gemma-4-31b-it} the list price was \$0.09 per million input and
+\$0.34 per million output tokens. Each trial has a one-hour ceiling on
+TabReD (the backend of FEDOT.LLM is given 1\,200~s of it for search) and the
+benchmark's own ceiling on MLAgentBench. Terminus-2 runs on the benchmark's
+stock image (Python~3.13 with the standard numerical libraries), AutoDS-Tools
+on the enriched image (Python~3.12 with LightAutoML and the other libraries
+its file names), FEDOT.LLM on an image with FEDOT (Python~3.10). Data,
+splits, metrics and backbone are identical across configurations; the image
+is varied and measured separately (Section~\ref{sec:abl-image}). Each
+harness enters the main comparison as it is shipped: Terminus-2 with the
+task statement alone, FEDOT.LLM with its built-in library, AutoDS-Tools with
+its instruction file on. The hub jobs ran in July and August 2026 and the
+repeats on our hardware in August and September 2026.
 
-Because a tool prescription presupposes the tool (Section~\ref{sec:axis}), we
-state the container contents per arm. In the leaderboard arm Terminus-2 runs
-on the benchmark's stock image, which ships the standard numerical and
-data-frame libraries on Python~3.13. AutoDS-Tools requires the libraries its
-prescription names and runs on an enriched image with them on Python~3.12.
-FEDOT.LLM runs on an image built for it, with FEDOT and its dependencies on
-Python~3.10. Data, splits, metrics and backbone are identical across arms; the
-installed library set is not, and Section~\ref{sec:matched} measures what it is
-worth.
+\subsection{Repeats, noise and statistics}
+\label{sec:stats}
 
-The same applies to the instruction. Each system enters the leaderboard as it
-is shipped: Terminus-2 with the task statement alone, FEDOT.LLM through a
-pipeline whose tool choice is welded in, AutoDS-Tools with its
-prescribed-knowledge layer applied. A row of Table~\ref{tab:leaderboard}
-therefore compares deployed systems, and two further arms isolate the
-architecture: AutoDS-Tools with the layer switched off, run as a full
-$2\times2$ over \Ktool{} and \Kdisc{}, and Terminus-2 on the enriched image.
+Every cell was run three times per task. The three harnesses do not share a
+noise floor: the relative standard deviation across attempts ranges from
+$\noiseTerminusMin\%$ to $\noiseTerminusMax\%$ for Terminus-2, is below
+$\noiseAutoDSMax\%$ on every task for AutoDS-Tools, and is zero on
+\allIdentFedot{} of eight tasks for FEDOT.LLM. Repeats carry less
+information than their count suggests: on \bitIdentTerminus{} tasks for
+Terminus-2 and \bitIdentAutoDS{} for AutoDS-Tools two attempts are
+bit-identical, because the agent wrote the same script and the submission is
+a deterministic library call. On MLAgentBench the spread is far larger
+(three attempts of one cell span $\mlabOgbnOffLo$ to $\mlabOgbnOffHi$
+accuracy on \texttt{ogbn-arxiv}), so there we read as real only differences
+that exceed the spread of both cells, and the section rests on cells in
+which a configuration produces no submission at all.
 
-\subsection{Noise floor}
+On the normalised scale the same spread reads as follows: over every choice
+of one attempt per task, the mean normalised score of Terminus-2 ranges over
+$\attRangeTerminus$ and that of FEDOT.LLM over $\attRangeFedot$, while
+AutoDS-Tools moves by under $0.01$. Differences between harnesses of that
+size are therefore read as noise.
 
-We measure a significance threshold and use it below. All three systems were
-run three times on every TabReD task, and they do not share a floor.
-Terminus-2's relative standard deviation across attempts ranges from
-$\noiseTerminusMin\%$ to $\noiseTerminusMax\%$; AutoDS-Tools reproduces
-itself an order of magnitude more tightly, from $\noiseAutoDSMin\%$ to
-$\noiseAutoDSMax\%$, and on \allIdentAutoDS{} of its eight tasks every attempt
-agrees to every digit; FEDOT.LLM agrees to every digit on \allIdentFedot{}
-tasks and varies by up to $\noiseFedotMax\%$ on the rest. Between systems we
-therefore treat a relative difference above $1\%$ as real, a threshold set by
-the noisiest system, Terminus-2. Between configurations of AutoDS-Tools we
-treat a difference above $0.1\%$ as real, a threshold set by its noisiest task.
+Comparisons between two configurations on TabReD are paired by task
+\citep{demsar2006statistical}. We report the mean difference in normalised
+score with a 95\% bootstrap interval over the eight tasks (20\,000 resamples),
+the number of tasks on which the first configuration is better, and the
+exact two-sided Wilcoxon signed-rank $p$-value, calling a difference
+significant at $p<0.05$; with eight tasks that test reaches $p=0.008$ only
+when all eight differences have the same sign, so it is conservative. The
+paired tests are reported without a multiplicity correction, and we say
+where a Holm correction would change a conclusion. A
+Friedman test over the \nMethods{} methods of the leaderboard rejects
+equality ($\chi^2=\friedmanChi$, $p\friedmanP$), but the Nemenyi critical
+difference at $\alpha=0.05$ is \nemenyiCD{} rank positions, so the average
+rank orders the methods without certifying the order, and all claims about
+pairs rest on the paired statistics. Differences in the number of trials
+that end without a submission are tested with Fisher's exact test.
 
-All floors are optimistic, and for the same reason. On \bitIdentTerminus{} of
-the eight tasks for Terminus-2, \bitIdentAutoDS{} for AutoDS-Tools and
-\bitIdentFedot{} for FEDOT.LLM two attempts are bit-identical: the agent reproduced the same script, and on these
-tasks the submission is a deterministic library call, so any two attempts that
-reach the same call return the same number. The floors measure library
-determinism as much as agent stability, and repeats carry less independent
-information than their count suggests.
-
-MLAgentBench has a noise floor nothing like the tabular one. Every cell was
-run three times: sixty trials for AutoDS-Tools with the layer on and off and
-twenty-four for Terminus-2. Three attempts of one cell
-can span $\mlabOgbnOffLo$ to $\mlabOgbnOffHi$ in accuracy (AutoDS-Tools without
-the layer on \texttt{ogbn-arxiv}) or $0.0844$ to $0.3846$ in micro-F1
-(Terminus-2 on \texttt{fathomnet}). A difference on this benchmark is read as
-real only when it exceeds a spread of that size, so Section~\ref{sec:mlab}
-rests on cells in which a configuration produces no submission at all.
-On TabReD a trial that exhausts its budget has written nothing; on
-MLAgentBench the verifier scores whatever exists when the agent is stopped,
-and such trials often submitted usable work (\texttt{clrs} scored $0.4118$
-and $\mlabClrsOffHi$ on two of them), so the paper counts exhausting the
-budget and returning nothing as separate events.
-
-\subsection{Coverage}
+\subsection{Coverage and deviations}
 \label{sec:coverage}
 
-Coverage across the three systems is uneven, and every absence follows from
-the architecture of FEDOT.LLM. All three systems attempt all eight TabReD
-tasks; AutoDS-Tools and Terminus-2 attempt all ten MLAgentBench tasks, and
-FEDOT.LLM two of the ten, because its architecture accepts tabular inputs
-only: the segmentation, multi-label vision, graph and sequence tasks are
-outside what it can express and would remain so after substantial
-engineering. Its domain is the tabular core, the eight TabReD tasks plus
-\texttt{house-price} and \texttt{spaceship-titanic}, and head-to-head
-comparisons of all three systems are made there. That FEDOT.LLM can attempt
-the fewest tasks follows from one decision: the pipeline is built around
-FEDOT, a tabular AutoML library.
+All three harnesses attempt all eight TabReD tasks. AutoDS-Tools and
+Terminus-2 attempt all ten MLAgentBench tasks; FEDOT.LLM accepts tabular
+inputs only; its two attempts on MLAgentBench's tabular tasks are in the
+released data package and enter no table here. Two MLAgentBench tasks, \texttt{cifar10} and
+\texttt{imdb}, could not be repeated: sixteen of sixteen attempts exhausted
+the agent budget on CPU training without a submission, so they are omitted
+from every table with three attempts per cell.
 
-Two MLAgentBench tasks, \texttt{cifar10} and \texttt{imdb}, could not be
-repeated, and the reason was measured. Sixteen attempts of sixteen exhausted
-the agent budget without a submission at two concurrency settings, so
-contention is not the cause. After the planning reports appear in the first
-minute, a single Python process holds about eight cores continuously: a
-training run. These two tasks are the heaviest to train and receive half the
-budget of most others, $3600$\,s against $7200$, and their image installs the
-CUDA build of PyTorch for a task that declares no accelerator, so training
-falls back to the CPU. The five-epoch starter script finishes there; nothing
-that improves on it does. Both tasks are omitted from every table that reports
-three attempts per cell. The limit is our hardware.
-
-\subsection{Deviations from the intended setup, and their measured cost}
-\label{sec:deviations}
-
-Two deviations from the intended design are known, and both are measured. The
-first concerns the data. Earlier AutoDS-Tools runs on TabReD used a different
-preparation: a $40{,}000$-row training slice spanning the official train and
-validation splits, a test slice covering $16.7\%$ to $61.4\%$ of the official
-test window, and an extra row-order column the official protocol withholds.
-Those runs are excluded from every accuracy table in this paper; the
-repair-loop counts of Section~\ref{sec:friction} come from them and are marked
-as such. Table~\ref{tab:arms} uses a re-run of the same system through the
-adapter that serves the full official splits, and both sets are released.
-FEDOT.LLM and Terminus-2 ran through that adapter from the start. The earlier
-comparison also differed in what was installed, the AutoDS-Tools arm carrying
-the libraries its prescription names while the others used the stock image;
-Section~\ref{sec:matched} closes that axis for Terminus-2; FEDOT.LLM runs on
-its own image by construction. Its row is three attempts per task in the
-system's full configuration: the best-quality preset, tuning on and a
-$1200$\,s backend budget under the shared 8 cores, 16\,GB and $3600$\,s
-ceiling. It reads the column types from the task schema, as the two agents
-read them from the task text; with FEDOT's own type detection three of the
-eight tasks returned no result. Four attempts that reached the ceiling while
-a third job shared the machine were repeated at the concurrency of the rest,
-and the repeats are the ones counted; every attempt is on the hub. The case
-studies of Section~\ref{sec:cases} used a $2400$\,s budget under the same
-ceiling.
-
-The second concerns the image. The enriched image installs LightGBM as a dependency, but the base image and
-the LightGBM wheel both lack an OpenMP runtime. The import therefore succeeds,
-and the failure appears inside the fit as a broken worker pool that looks like
-a modelling error. Forty-five trials met it: twenty-two of twenty-four AutoDS-Tools trials and
-twenty-three of twenty-four Terminus-2 trials on the enriched image. All
-forty-five diagnosed and repaired it in a single step, so it went unnoticed
-until we read the traces.
-Repeating the whole arm on a corrected image agrees to within $0.13\%$ on seven
-tasks and $0.34\%$ on the eighth, so the defect cost no measurable accuracy. It
-could still have distorted a crossed design, since the fault sits inside the
-prescribed library and can strike only the cells where that prescription is
-on. Every cell reported in the paper ran on the corrected image.
+Two deviations from the intended design are known and measured. First,
+earlier AutoDS-Tools runs on TabReD used a different data preparation (a
+40\,000-row training slice and a partial test window); they are excluded from
+every accuracy table and used only for the repair-loop counts of
+Section~\ref{sec:friction}, where they are marked. Second, the first build
+of the enriched image lacked the OpenMP runtime that LightGBM links against;
+45 of 48 trials met the error, every one diagnosed and repaired it in a
+single step, and a repeat on the corrected image agrees to within $0.34\%$ on
+every task. Every cell reported here ran on the corrected image. The
+FEDOT.LLM row uses the system's full configuration (best-quality preset,
+tuning on, 1\,200~s backend budget) with the column types read from the task
+schema, which the two agents read from the task text; with FEDOT's own type
+detection three of the eight tasks returned no result.

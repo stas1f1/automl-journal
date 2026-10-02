@@ -1,7 +1,11 @@
 # Черновик статьи в FGCS
 
-**Architecture over Parameters: How Far Agentic Design Patterns Carry a Weak Model
-in Automated Machine Learning**
+**Harness, Instruction File or Backbone: Where the Accuracy of LLM-Agent AutoML
+Comes From**
+
+(до 3 октября 2026: «Architecture over Parameters: How Far Agentic Design
+Patterns Carry a Weak Model in Automated Machine Learning»; эта редакция
+сохранена в ветке `archive-02-10`)
 
 ## Сборка
 
@@ -14,6 +18,37 @@ latexmk -pdf main.tex
 
 `elsarticle.cls` и `.bst` взяты с CTAN и лежат рядом, потому что в системном
 texlive их не было. Всё остальное стандартное.
+
+## Состояние на 3 октября 2026 (ветка `remaster`)
+
+Переработка по замечанию руководителя (вывод не читается из аннотации, язык
+сумбурный, схемы тяжёлые). Что изменено:
+
+- Новое название, Highlights и аннотация: три вывода (каркас почти не двигает
+  точность; файл инструкций даёт прирост и не переносится; никто не ищет
+  гиперпараметры). Введение построено вокруг тех же трёх выводов.
+- Терминология сведена к одному слову на понятие: *harness* (каркас вокруг
+  модели; «scaffold» упомянуто один раз), *instruction file* с двумя частями
+  *library instruction* и *discipline instruction* (вместо «prescribed-knowledge
+  layer», K_tool/K_disc, «welded in», «untreated», «arm»), *normalised score*,
+  *trial*, *cell*, *configuration*.
+- Структура: 5 «Main results» (лидерборд TabReD, MLAgentBench, кейсы,
+  стоимость) и 6 «Ablation studies» (каркас без файла; файл внутри AutoDS;
+  тот же файл в Terminus-2; тот же файл со стартового скрипта; образ
+  контейнера; модель). Каждый подраздел заканчивается одной фразой
+  «Finding N».
+- Статистика: парные тесты Уилкоксона по задачам, бутстреп-интервалы по
+  задачам, число задач с выигрышем, тест Фридмана и критическая разность
+  Немени (функции `paired_stats`, `friedman_nemenyi`, `rank_interval` в
+  `make_tables.py`; макросы `\st...`, `\rkLo...`, `\lost...`).
+- Рисунки: Fig. 1 перерисован без столбцов оценок и рамок контейнеров;
+  Fig. 2 заменён на `fig_leaderboard` (слева список 21 метода по среднему
+  рангу, справа восемь задач на одной нормированной оси); новый
+  `fig_ablations` (все абляции на двух осях: сдвиг точности и доля потерянных
+  испытаний); Fig. 3 кейсов получил нижний ряд с результатами каждой попытки.
+  `fig_modelaxis` из текста убран (данные вошли в `fig_ablations`).
+- Подписи к рисункам и таблицам сокращены до 25--60 слов.
+- Сборка: 16 страниц PDF (Highlights + 15), без предупреждений о ссылках.
 
 ## Состояние на 21 сентября 2026
 

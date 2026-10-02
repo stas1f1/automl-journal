@@ -1,52 +1,52 @@
-\section{Three architectures and the prescribed-knowledge layer}
+\section{Three harnesses and one instruction file}
 \label{sec:systems}
 
-% STAGE 3: rewritten 8 September 2026.
+% Remaster, 3 October 2026.
 
-The three systems are three design patterns of agentic AutoML: a fixed
-pipeline that the model configures, a team of specialised agents, and a single
-agent in an open execution loop. We describe each by the questions that matter
-for the argument: where a
-modelling decision is taken, who can override it, how many execution
-iterations are available, and what is fixed beyond the model's reach.
-Table~\ref{tab:designpoints} summarises the answers and
-Figure~\ref{fig:systems} draws them.
+The three harnesses are three design patterns of agentic AutoML: a workflow
+with fixed stages that the model configures, a team of specialised agents,
+and a single agent in an open execution loop~\citep{anthropic2024agents}.
+Figure~\ref{fig:systems} draws them and Table~\ref{tab:designpoints} lists
+what each one fixes in advance and what it leaves to the model.
 
-\subsection{FEDOT.LLM: a rigid pipeline}
+\subsection{FEDOT.LLM: a fixed-stage workflow}
 
-FEDOT.LLM~\citep{fedotllm} pairs an LLM-driven agent with the FEDOT
-framework~\citep{nikitin2022fedot} for tabular tasks in four fixed stages:
-data understanding extracts paths, types, target, metric and submission
-format; configuration and code generation produce a task-matched FEDOT
-configuration and fill a template with fixed input and output contracts, so
-that only the implementation is left to the model; an execution and correction
-loop runs the code in a sandbox and patches it until success or an iteration
-cap; reporting persists the script, the trained pipeline and the predictions.
-The decisive property is that the choice of modelling tool is fixed by the
-architecture: the system can solve a task only with FEDOT, and it accepts only
-tabular inputs.
+FEDOT.LLM~\citep{fedotllm} pairs an LLM agent with the FEDOT
+framework~\citep{nikitin2022fedot} in four fixed stages. Data understanding
+extracts paths, column types, target, metric and submission format;
+configuration and code generation produce a FEDOT configuration and fill a
+code template with fixed input and output contracts; an execution loop runs
+the code in a sandbox and patches it until it succeeds or a retry cap is
+reached; reporting saves the script, the trained pipeline and the
+predictions. Two properties matter for the argument. The modelling tool is
+fixed by design: every task is solved with FEDOT, which searches over model
+pipelines and tunes them within a time budget. And the workflow accepts
+tabular inputs only.
 
 \subsection{AutoDS-Tools: a multi-agent system}
 
-AutoDS-Tools~\citep{autodstools} coordinates six specialised agents by
-structured reports: an Analyst performs exploratory analysis, a Researcher
-studies the target library and writes usage cookbooks, a Planner turns both
-into an execution plan, a Coder refines the solution against execution
-results, a Debugger absorbs execution errors without disrupting the main
-context, and a Presenter audits the result. Each stage writes a Markdown
-report that the next one reads. The system may use any library installed in
-the environment and may restructure the solution between iterations.
+AutoDS-Tools~\citep{autodstools} coordinates six agents through written
+reports. An Analyst explores the data, a Researcher studies the target
+library and writes usage notes, a Planner turns both into an execution plan,
+a Coder writes and refines the solution against execution results, a
+Debugger absorbs execution errors outside the main context, and a Presenter
+audits the result. Each stage writes a Markdown report that the next one
+reads. The system may use any library installed in its container and may
+restructure the solution between iterations.
 
-\subsection{Terminus-2: an open harness}
+\subsection{Terminus-2: a minimal single-agent harness}
 
-Terminus-2 provides a shell, a working directory and an execution loop, and
-prescribes nothing about how the task should be solved. The model reads the task statement,
-inspects the data, writes code, runs it, reads the output, and repeats until it
-emits a submission or exhausts its budget.
+Terminus-2 is the reference agent of Terminal-Bench~\citep{merrill2026terminalbench}.
+It gives the model one tool, a shell in a working directory, and an
+execution loop: read the task statement, inspect the data, write code, run
+it, read the output, repeat until a submission is written or the budget is
+exhausted. It prescribes nothing about how the task should be solved.
 
 \begin{table}[t]
 \centering
-\caption{The three systems as points in the design space; the last three rows place them on the prescribed-knowledge axis of Section~\ref{sec:axis}.}
+\caption{What each harness fixes in advance and what it leaves to the model.
+The last two rows say where the instruction file of Section~\ref{sec:file}
+can be switched.}
 \label{tab:designpoints}
 \footnotesize
 \setlength{\tabcolsep}{3.5pt}
@@ -54,82 +54,60 @@ emits a submission or exhausts its budget.
 \toprule
  & FEDOT.LLM & AutoDS-Tools & Terminus-2 \\
 \midrule
-Tool choice        & fixed           & free            & free \\
-Role decomposition & none            & six agents      & none \\
+Design pattern     & workflow        & multi-agent     & single agent \\
+Modelling tool     & FEDOT, fixed     & free            & free \\
 Plan               & fixed stages    & generated       & emergent \\
 Execution loop     & bounded retries & per-agent       & open \\
 Input modalities   & tabular only    & any             & any \\
-\midrule
-\Ktool{}           & \emph{welded in} & switchable     & off, switchable \\
-\Kdisc{}           & not crossed$^{\ast}$ & switchable   & switchable \\
-\Kdisc{}           & not crossed$^{\ast}$ & switchable   & switchable \\
 Left to the model  & configuration   & everything      & everything \\
+\midrule
+Library instruction    & built in        & on / off        & off, appendable \\
+Discipline instruction & absent          & on / off        & off, appendable \\
 \bottomrule
 \end{tabular}
-\par\smallskip
-\begin{minipage}{0.95\linewidth}\footnotesize $^{\ast}$ switchable in principle,
-crossed on the two agentic systems only.\end{minipage}
 \end{table}
 
 \input{figures_systems}
 
-\subsection{The prescribed-knowledge axis}
-\label{sec:axis}
+\subsection{The instruction file and its two parts}
+\label{sec:file}
 
-Interventions that supply a system with knowledge it would otherwise have to
-derive are usually treated as one thing. In the layer AutoDS-Tools ships with they are two instructions of very unequal
-length: which library to use, and how to train and validate. Their combined
-gain is smaller than the sum of their separate gains (Sections~\ref{sec:grid}
-and~\ref{sec:kdiscterm}).
-
+AutoDS-Tools ships with an expert instruction file that is composed on the
+host and prepended to the task statement every agent reads. In current
+terminology it is an agent skill~\citep{li2026skillsbench}: standing
+procedural instructions, independent of the task. The file has two parts of
+very unequal length, and the paper measures them separately.
 \begin{description}
-  \item[\Ktool{}, tool prescription.] Which class of instrument to reach for: a
-        dedicated tabular AutoML library for tabular data, a vision backbone
-        library for images, a graph learning library for graphs, a transformer
-        library for text. It removes the question of what one normally uses
-        for a task of this kind.
-  \item[\Kdisc{}, training discipline.] How to train and how to check oneself:
-        the validation protocol, the handling of temporal shift, leakage
-        checks, and the prohibition of degenerate submissions. It is
-        orthogonal to the choice of library.
+  \item[Library instruction.] Which library to use for the task family: a
+        dedicated tabular AutoML library (LightAutoML~\citep{vakhrushev2021lightautoml})
+        for tabular data, a vision, graph or transformer library for the other
+        modalities. It states that the library is pre-installed and forbids a
+        fallback to general-purpose estimators. \layerLibMin{} to
+        \layerLibMax{} characters depending on the task family.
+  \item[Discipline instruction.] How to train and how to check oneself:
+        the validation protocol, handling of temporal shift, leakage checks,
+        comparison against a trivial predictor, allocation of the time budget,
+        the prohibition of degenerate submissions, and advice on training
+        time. \layerDiscipline{} characters, identical across task families,
+        plus a \layerHardware{}-character hardware section.
 \end{description}
+On a tabular task the whole file runs to \layerTotalTabular{} characters
+against a task statement of \layerBaseTask{}, close to 5$\times$ the length
+of the problem it is attached to. The library instruction, the part that
+gives the file its purpose, is $\layerShareMin$ to $\layerShareMax\%$ of the
+text. An ablation that switches the whole file at once therefore attributes
+to the choice of library an effect that may belong to the discipline
+instruction, and the two parts turn out to act through different mechanisms
+(Sections~\ref{sec:ablations} and~\ref{sec:mechanism}).
 
-The split can be measured. The layer AutoDS-Tools ships with is assembled from a library block chosen by
-task family and a discipline block. The first section of the discipline block
-is a hardware block, which we count separately. The library block carries one
-section heading and the discipline block seven, eight in all. We measured the blocks in the source module that assembles the layer and
-checked the counts against the instruction each container received. The library
-block runs from \layerLibMin{} characters for text to \layerLibMax{} for tabular
-tasks; the hardware block is \layerHardware{} characters and the discipline
-block \layerDiscipline{} on every task. The tool prescription, the intervention the layer is named
-after, accounts for between $\layerShareMin\%$ and $\layerShareMax\%$ of the
-text; the discipline block is the largest component on every task. On the
-tabular tasks the whole layer runs to \layerTotalTabular{} characters against a
-task statement of \layerBaseTask{}, close to 5$\times$ the length of the
-problem it is attached to. An ablation that switches the whole layer at once measures all three blocks
-together, so an effect ascribed to tool prescription in such an ablation is at
-least as likely to come from the hardware and discipline blocks; those two
-blocks are identical across modalities, while the reported effects differ by
-modality. Sections~\ref{sec:grid} and~\ref{sec:kdiscterm} measure the two
-halves separately and together.
-
-Table~\ref{tab:designpoints} places the three systems on this axis. In
-FEDOT.LLM itself the tool prescription is the pipeline: every task is solved
-through FEDOT, so \Ktool{} is always on. FEDOT.LLM is the end point of the
-axis, the system that fixes its tool most rigidly and searches over its
-models; Section~\ref{sec:ceiling} places it level with Terminus-2 in average rank
-on tabular data, the family FEDOT was built for. \Kdisc{} could in principle
-be crossed with every system. We
-cross both halves on AutoDS-Tools and Terminus-2, and FEDOT.LLM enters as the
-reference point at which \Ktool{} is always on.
-
-\subsection{A prescription presupposes its environment}
-
-Tool prescription is realisable only where the prescribed tool exists, so it
-is a property of the environment as much as of the text. The layer tells the
-agent that the specialised library is pre-installed and forbids a fallback to
-general-purpose estimators. On the benchmark's own image (Python~3.13) the
-prescribed tabular library does not build: an agent given the prescription
-there writes a correct pipeline, fails at import and scores zero. The
-environment is therefore part of the treatment, and Section~\ref{sec:design}
-reports the provisioning of each arm.
+Table~\ref{tab:designpoints} places the three harnesses relative to the
+file. In FEDOT.LLM the library instruction is the workflow itself: every task
+goes through FEDOT. Terminus-2 ships no instruction of its own, so the file
+reaches it only by being appended to the task statement, which is how we
+test the file in a second harness. A library instruction presupposes its
+environment: the prescribed tabular library does not build on the
+benchmark's own image (Python~3.13), so an agent given the instruction there
+writes a correct pipeline, fails at import and scores zero.
+Section~\ref{sec:design} therefore states the container image of every
+configuration and Section~\ref{sec:abl-image} measures what the image alone
+is worth.
