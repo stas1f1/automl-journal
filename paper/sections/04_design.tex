@@ -21,17 +21,15 @@ script to improve (MLAgentBench). \textbf{Container image}: the benchmark's
 stock image or the enriched image built for AutoDS-Tools, which adds the
 libraries its instruction file names; varied once, on Terminus-2.
 Table~\ref{tab:arms} lists every configuration with its number of trials.
-Throughout, a \emph{trial} is one attempt at one task, a \emph{cell} is one
-configuration run over all tasks of a benchmark, and a \emph{job} is one
-Harbor execution of a cell; every cell has three attempts per task unless
-stated.
+Throughout, a \emph{trial} is one attempt at one task and a \emph{cell} is
+one configuration run over all tasks of a benchmark; every cell has three
+attempts per task unless stated.
 
 \begin{table*}[t]
 \centering
-\caption{Every configuration in the paper. TabReD cells cover eight tasks,
-Both harnesses attempted all ten MLAgentBench tasks; the tables report the
-eight we could rerun on our hardware, and a count of 30 trials covers all
-ten (Section~\ref{sec:coverage}). Enriched: the image built for AutoDS-Tools,
+\caption{Every configuration in the paper. TabReD cells cover eight tasks.
+MLAgentBench cells cover ten tasks; the result tables report the eight we
+could rerun on our hardware (Section~\ref{sec:coverage}). Enriched: the image built for AutoDS-Tools,
 with the libraries its instruction file names. Trimmed: the discipline
 instruction without its two paragraphs about training time.}
 \label{tab:arms}
@@ -100,87 +98,62 @@ prediction~\citep{wang2025openpoly}.
 \subsection{Execution environment}
 
 All runs execute in the Harbor framework~\citep{harbor2026}, version 0.22,
-which records for every trial the submission, the output of the scorer (the
-benchmark's own verifier), the number of agent steps and errors, wall-clock
-time, token counts and cost. Cells that are compared with each other ran on
-one machine at one concurrency setting (number of trials in parallel), which
-the sections state. Backbones
-are called through OpenRouter at the providers' default sampling settings;
-for \texttt{gemma-4-31b-it} the list price was \$0.09 per million input and
-\$0.34 per million output tokens. Each trial has a one-hour ceiling on
-TabReD (the backend of FEDOT.LLM is given 1\,200~s of it for search) and the
-benchmark's own ceiling on MLAgentBench. Terminus-2 runs on the benchmark's
-stock image (Python~3.13 with the standard numerical libraries), AutoDS-Tools
-on the enriched image (Python~3.12 with LightAutoML and the other libraries
-its file names), FEDOT.LLM on an image with FEDOT (Python~3.10). Data,
-splits, metrics and backbone are identical across configurations; the image
-is varied and measured separately (Section~\ref{sec:abl-image}). Each
-harness enters the main comparison as it is shipped: Terminus-2 with the
-task statement alone, FEDOT.LLM with its built-in library, AutoDS-Tools with
-its instruction file on. The hub jobs ran in July and August 2026 and the
-repeats on our hardware in August and September 2026.
+which records for every trial the submission, the output of the benchmark's
+own scorer, the number of agent steps and errors, wall-clock time, token
+counts and cost. Cells that are compared with each other ran on one machine
+with the same number of trials in parallel. Backbones are called through
+OpenRouter at the providers' default sampling settings; for
+\texttt{gemma-4-31b-it} the list price was \$0.09 per million input and
+\$0.34 per million output tokens. Each trial has a one-hour limit on TabReD
+(the backend of FEDOT.LLM is given 1\,200~s of it for search) and the
+benchmark's own limit on MLAgentBench. Terminus-2 runs on the benchmark's
+stock image (Python~3.13), AutoDS-Tools on the enriched image (Python~3.12
+with LightAutoML and the other libraries its file names), FEDOT.LLM on an
+image with FEDOT (Python~3.10). Data, splits, metrics and backbone are
+identical across configurations. Each harness enters the main comparison as
+it is shipped: Terminus-2 with the task statement alone, FEDOT.LLM with its
+built-in library, AutoDS-Tools with its instruction file on.
 
 \subsection{Repeats, noise and statistics}
 \label{sec:stats}
 
-Every cell was run three times per task to quantify the variation between
-attempts, which differs among the three harnesses: the relative standard
-deviation across attempts ranges from
-$\noiseTerminusMin\%$ to $\noiseTerminusMax\%$ for Terminus-2, is below
-$\noiseAutoDSMax\%$ on every task for AutoDS-Tools, and is zero on
-\allIdentFedot{} of eight tasks for FEDOT.LLM. Repeats carry less
-information than their count suggests: on \bitIdentTerminus{} tasks for
-Terminus-2 and \bitIdentAutoDS{} for AutoDS-Tools two attempts are
-bit-identical, because the agent wrote the same script and the submission is
-a deterministic library call. On MLAgentBench the spread is far larger
-(three attempts of one cell span $\mlabOgbnOffLo$ to $\mlabOgbnOffHi$
-accuracy on \texttt{ogbn-arxiv}), so there we read as real only differences
-that exceed the spread of both cells, and the section rests on cells in
-which a configuration produces no submission at all.
+Every cell was run three times per task. The relative standard deviation
+across attempts ranges from $\noiseTerminusMin\%$ to $\noiseTerminusMax\%$
+for Terminus-2, is below $\noiseAutoDSMax\%$ for AutoDS-Tools, and is zero
+on \allIdentFedot{} of eight tasks for FEDOT.LLM; on several tasks the agent
+wrote the same script in two attempts and obtained a bit-identical result.
+On the normalised scale, over every choice of one attempt per task, the mean
+score of Terminus-2 ranges over $\attRangeTerminus$, that of FEDOT.LLM over
+$\attRangeFedot$ and that of AutoDS-Tools over less than $0.01$. We treat
+differences between harnesses of that size as inconclusive. On MLAgentBench
+the spread is far larger (three attempts of one cell span $\mlabOgbnOffLo$
+to $\mlabOgbnOffHi$ accuracy on \texttt{ogbn-arxiv}), so there we rely on
+cells in which a configuration produces no submission at all.
 
-On the normalised scale the same spread reads as follows: over every choice
-of one attempt per task, the mean normalised score of Terminus-2 ranges over
-$\attRangeTerminus$ and that of FEDOT.LLM over $\attRangeFedot$, while
-AutoDS-Tools moves by under $0.01$. We treat differences between harnesses
-of that size as inconclusive.
-
-Comparisons between two configurations on TabReD are paired by task
-\citep{demsar2006statistical}. We report the mean difference in normalised
-score with a 95\% bootstrap interval over the eight tasks (20\,000 resamples),
-the number of tasks on which the first configuration is better, and the
-exact two-sided Wilcoxon signed-rank $p$-value, calling a difference
-significant at $p<0.05$; with eight tasks that test reaches $p=0.008$ only
-when all eight differences have the same sign, so it is conservative. The
-paired tests are reported without a multiplicity correction, and we say
-where a Holm correction would change a conclusion. A
-Friedman test over the \nMethods{} methods of the leaderboard rejects
-equality ($\chi^2=\friedmanChi$, $p\friedmanP$), but the Nemenyi critical
-difference at $\alpha=0.05$ is \nemenyiCD{} rank positions, so the average
-rank orders the methods without certifying the order, and all claims about
-pairs rest on the paired statistics. Differences in the number of trials
-that end without a submission are tested with Fisher's exact test.
+Comparisons between two configurations on TabReD are paired by
+task~\citep{demsar2006statistical}. We report the mean difference in
+normalised score with a 95\% bootstrap interval over the eight tasks
+(20\,000 resamples), the number of tasks on which the first configuration is
+better, and the exact two-sided Wilcoxon signed-rank $p$-value, without a
+multiplicity correction. We call a difference significant at $p<0.05$. With
+eight tasks the test reaches $p=0.008$ only when all eight differences have
+the same sign. For the same reason the average rank in the leaderboard
+orders the methods without separating them statistically: the Nemenyi
+critical difference over \nMethods{} methods and eight tasks is \nemenyiCD{}
+rank positions. Differences in the number of trials that end without a
+submission are tested with Fisher's exact test.
 
 \subsection{Coverage and deviations}
 \label{sec:coverage}
 
 All three harnesses attempt all eight TabReD tasks. AutoDS-Tools and
 Terminus-2 attempt all ten MLAgentBench tasks; FEDOT.LLM accepts tabular
-inputs only; its two attempts on MLAgentBench's tabular tasks are in the
-released data package and enter no table here. Two MLAgentBench tasks, \texttt{cifar10} and
-\texttt{imdb}, could not be repeated: sixteen of sixteen attempts exhausted
-the agent budget on CPU training without a submission, so they are omitted
-from every table with three attempts per cell.
-
-Two deviations from the intended design are known and measured. First,
-earlier AutoDS-Tools runs on TabReD used a different data preparation (a
-40\,000-row training slice and a partial test window); they are excluded from
-every accuracy table and used only for the repair-loop counts of
-Section~\ref{sec:friction}, where they are marked. Second, the first build
-of the enriched image lacked the OpenMP runtime that LightGBM links against;
-45 of 48 trials met the error, every one diagnosed and repaired it in a
-single step, and a repeat on the corrected image agrees to within $0.34\%$ on
-every task. Every cell reported here ran on the corrected image. The
-FEDOT.LLM row uses the system's full configuration (best-quality preset,
-tuning on, 1\,200~s backend budget) with the column types read from the task
-schema, which the two agents read from the task text; with FEDOT's own type
-detection three of the eight tasks returned no result.
+inputs only. Two MLAgentBench tasks, \texttt{cifar10} and \texttt{imdb},
+could not be repeated on our hardware (sixteen of sixteen attempts exhausted
+the budget on CPU training) and are omitted from every table with three
+attempts per cell. Earlier AutoDS-Tools runs on TabReD used a different data
+preparation; they are excluded from every accuracy table and used only for
+the repair-loop counts of Section~\ref{sec:friction}. The FEDOT.LLM row uses
+the system's full configuration (best-quality preset, tuning on, 1\,200~s
+backend budget) with the column types read from the task schema, which the
+two agents read from the task text.

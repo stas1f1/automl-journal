@@ -1,15 +1,11 @@
 \section{What the execution traces show}
 \label{sec:mechanism}
 
-% Remaster, 3 October 2026.  Three questions, three short subsections.
+% Remaster, 6 October 2026.
 
-The ablations are consistent with one reading: an instruction pays where it
-overrides a decision the model gets wrong, and costs where the model's own
-default was already right. The execution traces that Harbor records for
-every trial say why. We read them for three things: which tool the
-uninstructed agent reaches for and whether it tunes it; which clauses of the
-discipline instruction change the agent's behaviour; and how often an
-instruction sends the agent into repair.
+Harbor records every trial's execution trace. We read the traces for three
+things: who builds the model, whether the discipline instruction changes the
+agent's behaviour, and how often an instruction sends the agent into repair.
 
 \subsection{Who builds the model: the agent or an AutoML library}
 \label{sec:spontaneous}
@@ -42,49 +38,32 @@ learners and settings is released with the paper.
 \label{sec:discipline}
 
 The discipline instruction moves the task metric by $\gridDiscMeanU\%$ on
-average (Table~\ref{tab:grid}). The traces of the same four cells show that
-it reaches the agent. Three clauses ask it to compare against a trivial
-predictor, to allocate the time budget before starting, and to keep the
-variant that validates best; all three behaviours appear in every trial of
-the two cells with the discipline instruction and in no trial of the two
-cells without it. Two further clauses fail as a manipulation check. AutoDS-Tools inspects its
-submission in 22 of 24 uninstructed trials and Terminus-2 in none; this is a
-habit of the harness, and a comparison across harnesses would credit it to
-the instruction. Early stopping is universal without the library and
-invisible with it, because the prescribed library performs it internally.
-The discipline instruction therefore switches three behaviours on in every
-trial and moves the score by $\gridDiscMeanU\%$: the agent follows it, and
-on tabular data its own defaults were already adequate.
+average (Table~\ref{tab:grid}), and the traces show that the agent follows
+it. Three clauses ask it to compare against a trivial predictor, to plan the
+time budget before starting, and to keep the variant that validates best.
+All three behaviours appear in every trial of the two cells with the
+discipline instruction and in no trial of the two cells without it. On
+these tabular tasks the agent's own choices were already adequate, so
+following the instruction changed little in the score.
 
 \subsection{Instructions make execution fail more often}
 \label{sec:friction}
 
-AutoDS-Tools contains a repair loop, invoked when execution fails. It is
-active in both branches of the MLAgentBench ablation and does not fire
-equally often. The loop was not instrumented in the repeats, so the count
-comes from the earlier pair of jobs, which covered all eighteen TabReD and
-MLAgentBench tasks once per cell on the earlier data preparation of
-Section~\ref{sec:coverage}, and we report only the direction of the
-difference. Across those 36 runs the loop fired 18 times with the file and
-12 without it. The imbalance is concentrated on tasks for which the file
-names a specialised library: four invocations with the file against none
-without it on \texttt{clrs}, and three against none on
-\texttt{amp-parkinsons}. On both tasks the agent then failed to use the
-library interface.
+AutoDS-Tools contains a repair loop, invoked when execution fails. The loop
+was not logged in the repeated runs, so the count comes from an earlier pair
+of runs (all eighteen TabReD and MLAgentBench tasks once per cell, on the
+earlier data preparation of Section~\ref{sec:coverage}), and we report only
+the direction. The loop fired 18 times with the file and 12 times without
+it, mostly on tasks for which the file names a specialised library: four
+invocations against none on \texttt{clrs} and three against none on
+\texttt{amp-parkinsons}.
 
-The trial artefacts identify the clause associated with the largest loss.
-The discipline instruction tells the agent not to stop after ``an arbitrary
-small budget (5 or 15 epochs is almost always badly undertrained)'' and
-offers ``$\sim 100$ epochs'' as a starting point. On \texttt{clrs} the agent
-without the file chose 5 to 30 epochs, reached $\mlabClrsOff$ pointer
-accuracy and used 92 of a 120-minute budget on one attempt. The agent with
-the file attempted a hundred epochs, following guidance written without
-reference to the time budget, and made no submission in three attempts.
-
-These results indicate that instructions can increase execution failures, so
-their net effect is positive only when the gain from the prescribed tool
-offsets those failures. In a harness without a repair loop the losses are
-larger (Section~\ref{sec:abl-terminus}). When one file bundles a helpful
-override with a harmful one, its measured effect depends on the mix of task
-families in the benchmark, which may explain why the ablations cited in
-Section~\ref{sec:related} disagree.
+The largest loss on MLAgentBench traces back to one clause. The discipline
+instruction tells the agent not to stop after ``an arbitrary small budget (5
+or 15 epochs is almost always badly undertrained)'' and offers
+``$\sim 100$ epochs'' as a starting point. On \texttt{clrs} the agent
+without the file chose 5 to 30 epochs and used 92 of a 120-minute budget on
+one attempt. With the file it attempted a hundred epochs and made no
+submission in three attempts. Instructions can therefore increase execution
+failures, and their net effect is positive only when the gain from the
+prescribed tool offsets those failures.
