@@ -385,11 +385,17 @@ CASE_ARMS = [
 ]
 CASES = {
     # (кейс, система, текст): ([метрика по попыткам], [минуты агента по попыткам])
-    ("maize-yield", "AutoDS-Tools", "prescribed"): ([0.568563], [16.7]),
-    # минуты AutoDS-Tools: agent_execution в result.json июльских трайлов
-    # (433a969c F-DATA 17.5, edf0f88f OpenPoly 7.0; result_files/LAMA_FDATA_2026-09-22.md)
-    ("fdata-exit",  "AutoDS-Tools", "prescribed"): ([0.920713], [17.5]),
-    ("openpoly-tg", "AutoDS-Tools", "prescribed"): ([0.543], [7.0]),
+    # AutoDS-Tools, три попытки на кейс, 24.09.2026: задания
+    # autods-cases-20260924-152108 и autods-cases-top-20260924-164757
+    # (result_files/AUTODS_CASES_2026-09-24.md).  Текст задания с разделом о
+    # библиотеке, файл инструкций AutoDS выключен, шаги поиска включены.  Две
+    # попытки, сорвавшиеся на установке агента (AgentSetupTimeoutError), в счёт
+    # не идут и заменены попытками из второго задания.  Одиночные июльские
+    # прогоны (0.568563 / 0.920713 / 0.543; 16.7 / 17.5 / 7.0 мин) лежат внутри
+    # разброса этих попыток и в таблицу больше не входят.
+    ("maize-yield", "AutoDS-Tools", "prescribed"): ([0.563619, 0.535805, 0.615848], [13.9, 16.4, 14.1]),
+    ("fdata-exit",  "AutoDS-Tools", "prescribed"): ([0.920499, 0.920115, 0.920115], [21.8, 18.3, 20.1]),
+    ("openpoly-tg", "AutoDS-Tools", "prescribed"): ([0.556093, 0.518430, 0.512330], [11.4, 13.1, 34.2]),
     ("maize-yield", "Terminus-2", "plain"):      ([0.63576, None, 0.674405], [0.8, 3.2, 2.1]),
     ("fdata-exit",  "Terminus-2", "plain"):      ([0.922038, 0.922038, 0.922551], [0.4, 1.1, 1.7]),
     ("openpoly-tg", "Terminus-2", "plain"):      ([0.566729, 0.475295, None], [4.8, 1.1, 3.2]),
@@ -403,11 +409,11 @@ CASES = {
 }
 # Вторичные метрики тех же трайлов для прозы (только попытки с файлом).
 CASE_EXTRA = {
-    ("maize-yield", "AutoDS-Tools", "prescribed"): {"norm_rmse": [0.957710], "r2": [0.082792]},
+    ("maize-yield", "AutoDS-Tools", "prescribed"): {"norm_rmse": [1.003731, 0.965781, 0.972600], "r2": [-0.007475, 0.067266, 0.054049]},
     ("maize-yield", "Terminus-2", "plain"):        {"norm_rmse": [0.8128, 0.7705], "r2": [0.3394, 0.4063]},
-    ("fdata-exit",  "AutoDS-Tools", "prescribed"): {"balanced_accuracy": [0.705421]},
+    ("fdata-exit",  "AutoDS-Tools", "prescribed"): {"balanced_accuracy": [0.704370, 0.677490, 0.677490]},
     ("fdata-exit",  "Terminus-2", "plain"):        {"balanced_accuracy": [0.7164, 0.7161, 0.7142]},
-    ("openpoly-tg", "AutoDS-Tools", "prescribed"): {"mae": [40.379846]},
+    ("openpoly-tg", "AutoDS-Tools", "prescribed"): {"mae": [37.920013, 37.934315, 43.309020]},
     ("openpoly-tg", "Terminus-2", "plain"):        {"mae": [37.6775, 42.4584]},
     ("maize-yield", "FEDOT.LLM", "plain"):         {"norm_rmse": [0.8483, 0.8650, 0.8660], "r2": [0.2804, 0.2518, 0.2500]},
     ("fdata-exit",  "FEDOT.LLM", "plain"):         {"balanced_accuracy": [0.8530, 0.8530, 0.8530]},
@@ -643,7 +649,7 @@ def table_cases():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item AutoDS-Tools rows are the single July runs on the published text. "
+    A(r"\item AutoDS-Tools rows run the published text with the system's own instruction file off. "
       r"FEDOT.LLM cannot act on the library section and has no molecular featurisation, "
       r"so it has one row and was not run on OpenPoly. "
       r"F-DATA: majority class scores " + f"{CASE_FLOORS['fdata-exit']:.3f}" + r". "
