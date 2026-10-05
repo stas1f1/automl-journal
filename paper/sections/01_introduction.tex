@@ -1,86 +1,77 @@
 \section{Introduction}
 \label{sec:intro}
 
-% Remaster, 3 October 2026.  One idea per paragraph: context, gap, what we
-% do, the three findings, contributions, outline.
+% Remaster, 5 October 2026.  One idea per paragraph: context, gap, what we
+% do, the three findings, contributions, outline.  Numbers are kept to the
+% minimum here; each one is reported once in Sections 5 and 6.
 
-Large language models have changed automated machine learning. Systems
-built on them plan experiments, write and repair code, read execution logs
-and revise their own solutions, which classical AutoML frameworks, searching
-a fixed space of pipelines, could not do~\citep{nikitin2022fedot,gijsbers2024amlb}.
-Such a system has three parts that can be varied independently. The
+Automated machine learning (AutoML) frameworks search a predefined space
+of pipelines~\citep{nikitin2022fedot,gijsbers2024amlb}. An agent built on a
+large language model (LLM) works differently: it plans experiments, writes
+and repairs code, reads execution logs and revises its own solution. Such an
+agentic AutoML system has three parts that can be varied independently. The
 \emph{backbone} is the language model. The \emph{harness} is the code
 around the model: its tools, control flow, memory and prompts (the 2024--2025
-literature says scaffold~\citep{chan2025mlebench,hu2026beyondmodel}). The
-\emph{instruction file} is the standing text practitioners add to tell the
-agent which libraries to use and how to work, now packaged as an agent
-skill~\citep{li2026skillsbench}.
+literature calls it a scaffold~\citep{chan2025mlebench,hu2026beyondmodel}).
+The \emph{instruction file} holds the standing instructions that
+practitioners add to tell the agent which libraries to use and how to work;
+such files are now packaged as agent skills~\citep{li2026skillsbench}.
 
-Which of the three parts the accuracy comes from is unmeasured. Papers in
-the area introduce one system and report that it improves on a previous one,
-with the backbone, the harness, the instructions and the evaluation protocol
-all changing at once, so the published ablations
-disagree~\citep{toledo2025aira,brilliantov2026harness}. Agentic AutoML
-systems are also rarely measured against the baseline a competent
-practitioner would reach for, gradient boosting with tuned hyperparameters;
-where gradient boosting appears, it is usually at its defaults.
+How much each of the three parts contributes to accuracy is not known. A
+typical paper in the area introduces one system and reports an improvement
+over a previous one, with the backbone, the harness, the instructions and
+the evaluation protocol all changing at once, and the published ablations
+disagree as a result~\citep{toledo2025aira,brilliantov2026harness}. Agentic
+AutoML systems are also rarely compared with the baseline a competent
+practitioner would use, gradient boosting with tuned hyperparameters; when
+gradient boosting appears, it usually runs with its defaults.
 
 This paper measures the three parts separately. We use one open-weight
 model with 31 billion parameters (31B), \texttt{gemma-4-31b-it}, as the
-backbone of every system, and run three harnesses that
-span the design space of agentic AutoML (Figure~\ref{fig:systems}):
-\textbf{FEDOT.LLM}, a workflow with four fixed stages in which the model
-configures the FEDOT AutoML library; \textbf{AutoDS-Tools}, a system of six
-specialised agents that communicate through written reports; and
-\textbf{Terminus-2}, the minimal single-agent harness of
+backbone of every system, and run three harnesses that represent distinct
+designs of agentic AutoML (Figure~\ref{fig:systems}): \textbf{FEDOT.LLM}, a
+workflow with four fixed stages in which the model configures the FEDOT
+AutoML library; \textbf{AutoDS-Tools}, a system of six specialised agents
+that communicate through written reports; and \textbf{Terminus-2}, the
+minimal single-agent harness of
 Terminal-Bench~\citep{merrill2026terminalbench}, which gives the model a
-shell and an execution loop. AutoDS-Tools ships with an
-expert instruction file of about 5\,000 characters that names the library to
-use and prescribes a training discipline; we switch that file on and off,
-split it into its two parts, and hand it to Terminus-2. We also swap the
-backbone for a smaller and for a larger model. Every configuration runs in
-the Harbor framework~\citep{harbor2026}, which records each attempt, error,
-token and second. Accuracy is read on the eight tasks of
-TabReD~\citep{rubachev2024tabred}, real-world tabular tasks with temporal
-splits, against the eighteen Optuna-tuned reference methods published with
-the benchmark, on a scale where 0 is the weakest and 1 the strongest
-published method per task. MLAgentBench~\citep{huang2024mlagentbench}, where
-every task starts from a working script, and three published scientific
-studies give two further starting points.
+shell and an execution loop. AutoDS-Tools ships with an expert instruction
+file of about 5\,000 characters that names the library to use and prescribes
+a training discipline. We switch this file on and off, split it into its two
+parts and give it to Terminus-2. We also replace the backbone with a smaller
+and with a larger model. Every configuration runs in the Harbor
+framework~\citep{harbor2026}, which records each attempt, error, token and
+second. Accuracy is measured on the eight real-world tabular tasks of
+TabReD~\citep{rubachev2024tabred}, which use temporal splits, against the
+eighteen hyperparameter-tuned reference methods published with the
+benchmark. Scores are normalised per task so that 0 is the weakest and 1 the
+strongest published method. Two further settings change the starting point:
+MLAgentBench~\citep{huang2024mlagentbench}, where each task begins with a
+working script, and three tasks built from published scientific studies.
 
 Three findings organise the paper.
 \begin{enumerate}
 \setlength{\itemsep}{1pt}
-\item \textbf{The harness alone moves tabular accuracy by about as much
-  as the choice of attempt.} With the instruction file removed, the three
-  harnesses lie within $\spanArch$ of each other on the normalised scale,
-  the range a single harness covers over its own three attempts is
-  $\attRangeTerminus$ to $\attRangeFedot$, and no pairwise difference
-  between harnesses reaches significance over the eight tasks. The harness
-  does determine reliability, time and coverage: AutoDS-Tools spends
-  $\costRatioMin\times$ the mean wall-clock of Terminus-2, and FEDOT.LLM
-  can attempt tabular tasks only.
-\item \textbf{The instruction file is where the accuracy comes from, and it
-  is conditional on the harness and on the starting point.} Inside
-  AutoDS-Tools it lifts the normalised score from $\nAutoDSOff$ to
-  $\nAutoDS$, improving all eight tasks ($p=\stfileBothP$); the part that
-  names the library carries the gain and alone reaches $\nGridTool$.
-  Appended to Terminus-2 the same file leaves accuracy unchanged and ends
-  \ktDiscLost{} of 24 trials without a submission with its discipline part,
-  \ktToolLost{} of \ktToolTrials{} with its library part and \ktBothLost{}
-  of 24 with both; for the discipline part, two paragraphs about training
-  time are the cause. On MLAgentBench, where a working script is supplied,
-  the whole file leaves \mlabWiped{} of \mlabRepeated{} tasks without any
-  submission.
-\item \textbf{No configuration searches over hyperparameters, and that gap
+\item \textbf{The harness alone changes tabular accuracy by about as much
+  as the variation between attempts.} With the instruction file removed, the
+  three harnesses lie within $\spanArch$ of each other on the normalised
+  scale, and no pairwise difference between them is significant over the
+  eight tasks. The harness does affect reliability, wall-clock time and the
+  set of tasks a system can attempt.
+\item \textbf{The instruction file accounts for the accuracy gain, and its
+  effect depends on the harness and on the starting point.} Inside
+  AutoDS-Tools the file raises the normalised score from $\nAutoDSOff$ to
+  $\nAutoDS$ and improves all eight tasks; the part that names the library
+  carries the gain. Appended to Terminus-2, the same file leaves accuracy
+  unchanged and ends half or more of the trials without a submission. Where
+  a working script is supplied, it leaves whole tasks without a submission.
+\item \textbf{No configuration searches over hyperparameters, and this
   separates all of them from the strongest published method.} AutoDS-Tools
-  as shipped is level with tuned LightGBM ($\nLGBM$), its library-only cell
-  level with tuned XGBoost ($\nXGB$), and the strongest published method, an
+  as shipped is on par with tuned LightGBM, and with its library instruction
+  alone on par with tuned XGBoost. The strongest published method, an
   MLP-PLR ensemble at $\nBest$, is out of reach of every configuration. The
   traces show one hand-written gradient-boosting configuration per trial and
-  no search. FEDOT.LLM, whose backend searches over models within its
-  budget, beats every published method on one task of eight
-  (\texttt{ecom-offers}) and is level with Terminus-2 over the eight.
+  no search.
 \end{enumerate}
 
 The contributions are: (i) a controlled comparison of three agentic AutoML
@@ -94,18 +85,17 @@ locates the mechanism behind each effect (Section~\ref{sec:mechanism});
 (v) an external check on three published scientific tasks; and (vi) the
 release of all tasks, instruction files, traces and scripts.
 
-The finding bears on how agent leaderboards are read. Terminal-Bench~2.0
-introduces Terminus-2 as a neutral scaffold so that a leaderboard over it
-compares models~\citep{merrill2026terminalbench}, and recent work on coding
-agents reports that elaborate harnesses add little over a minimal one once
-the model is strong~\citep{brilliantov2026harness,hu2026beyondmodel}. On
-tabular data with a mid-size open model we find the same for the harness and
-the opposite for the instruction file: the file moves the result by
-$\layerWorthNorm$ on the normalised scale; a backbone swap that changes the
-bill \axPriceSpread$\times$ moves it by $\stautodsSmallDiff$ to
-$\stautodsBigDiff$ under AutoDS-Tools and, under Terminus-2, by up to
-$\sttermBigDiff$ through a single task. A leaderboard over one harness
-therefore measures its instructions as much as the model.
+These findings affect how agent leaderboards should be read.
+Terminal-Bench~2.0 introduces Terminus-2 as a neutral scaffold so that a
+leaderboard over it compares models~\citep{merrill2026terminalbench}, and
+recent work on coding agents reports that elaborate harnesses add little
+over a minimal one once the model is
+strong~\citep{brilliantov2026harness,hu2026beyondmodel}. On tabular data
+with a mid-size open model, our harness comparison agrees with that result.
+The instruction file is a different matter: inside AutoDS-Tools it moves the
+result further than a backbone swap that changes the API cost
+\axPriceSpread$\times$ (Section~\ref{sec:abl-backbone}). A leaderboard built
+around one harness therefore measures its instructions as well as the model.
 
 Section~\ref{sec:related} places the study in the literature,
 Section~\ref{sec:systems} describes the three harnesses and the instruction
