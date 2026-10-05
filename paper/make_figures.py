@@ -700,7 +700,7 @@ def fig_leaderboard():
 # ======================================================================
 ABL_ROWS = [
     # (group header or None, label, comparison key, system colour, lost key treated, lost key reference)
-    ("Harness alone (instruction file removed, same image)", None, None, None, None, None),
+    ("Harness alone (instruction file removed)", None, None, None, None, None),
     (None, "AutoDS-Tools vs Terminus-2", "archAutoDSvsTerminus", "AutoDS-Tools", "autods_none", "term_enriched"),
     (None, "FEDOT.LLM vs Terminus-2", "shipFedotvsTerminus", "FEDOT.LLM", "fedot", "term_stock"),
     (None, "AutoDS-Tools vs FEDOT.LLM", "archAutoDSvsFedot", "AutoDS-Tools", "autods_none", None),
