@@ -24,11 +24,24 @@ import make_tables as mt  # noqa: E402
 OUT = Path(__file__).parent / "figures"
 OUT.mkdir(exist_ok=True)
 
-INK = "#1a1a1a"
-MUTED = "#6e6e6e"
-GRID_C = "#e4e4e4"
-C = {"AutoDS-Tools": "#0072B2", "Terminus-2": "#D55E00", "FEDOT.LLM": "#009E73",
-     "context": "#9a9a9a"}
+# House palette, 6 October 2026 (replaces Okabe-Ito; the previous figures are in
+# figures/archive_2026-10-06_okabe-ito/).  One colour and one marker per system
+# across every figure; a lime highlight for the instruction file; three case
+# colours that never stand for a system.  Neutrals are warm stone greys.
+# Pairwise CIELAB distance between the three system colours stays above 29
+# under simulated protanopia, deuteranopia and tritanopia (Okabe-Ito: 17).
+# The full table and its rationale are in figures/STYLE.md.
+INK = "#1F2330"            # text, axes labels
+MUTED = "#6B6862"          # secondary text
+GRID_C = "#E8E5DF"         # grid lines
+C = {"AutoDS-Tools": "#283C8C",   # indigo
+     "Terminus-2": "#C8457E",     # raspberry
+     "FEDOT.LLM": "#B98A17",      # mustard
+     "context": "#A39E95"}        # stone, anything that is not a system
+KNOWLEDGE = "#D6F26A"      # instruction file: light lime, a sticky-note highlight
+CASE = {"primary": "#2E9CB8",     # cyan: the data a case-study panel shows
+        "highlight": "#9C5B34",   # sienna: the part to predict, a reference line
+        "context": "#A39A8C"}     # stone: training or background data
 
 TITLE = dict(fontsize=7, fontweight="bold", loc="center")
 PANEL = dict(fontsize=6.5, fontweight="bold", loc="center")
@@ -39,7 +52,7 @@ plt.rcParams.update({
     "font.size": 7, "font.family": "sans-serif",
     "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial"],
     "axes.titlesize": 7.5, "axes.titleweight": "bold", "axes.titlepad": 5,
-    "axes.labelsize": 7, "axes.labelcolor": INK, "axes.edgecolor": "#9a9a9a",
+    "axes.labelsize": 7, "axes.labelcolor": INK, "axes.edgecolor": "#A39E95",
     "axes.linewidth": 0.6, "axes.spines.top": False, "axes.spines.right": False,
     "axes.axisbelow": True, "grid.color": GRID_C, "grid.linewidth": 0.6,
     "xtick.color": INK, "ytick.color": INK, "xtick.labelsize": 6.5,
@@ -95,7 +108,7 @@ def fig_position():
     fig, ax = plt.subplots(figsize=(COL_W, 2.5))
     ax.set_xlim(-0.02, 1.02)
     ax.set_ylim(-1.85, 1.85)
-    ax.axhline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax.axhline(0, color="#A39E95", lw=0.8, zorder=1)
     ax.set_yticks([])
     for s in ("left", "bottom"):
         ax.spines[s].set_visible(False)
@@ -188,7 +201,7 @@ def fig_grid():
     tasks = list(mt.TASKS)
     fig, ax = plt.subplots(figsize=(COL_W, 2.5))
     ax.axvspan(-0.1, 0.1, color="#efefef", zorder=0)
-    ax.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax.axvline(0, color="#A39E95", lw=0.8, zorder=1)
     ax.grid(axis="x")
     for i, t in enumerate(tasks):
         y = len(tasks) - 1 - i
@@ -240,7 +253,7 @@ def fig_modelaxis():
         cost = [rows[m][5] for m in order]
         axes[2].bar(x + off, cost, w, color=col)
     axes[0].set_title("Median accuracy change, %", **PANEL)
-    axes[0].axhline(0, color="#9a9a9a", lw=0.8)
+    axes[0].axhline(0, color="#A39E95", lw=0.8)
     axes[0].set_ylim(-0.9, 0.3)
     axes[1].set_title("Trials with no metric, %", **PANEL)
     axes[1].set_ylim(0, 34)
@@ -277,7 +290,7 @@ def fig_walltime():
         ax.scatter([lim], [1 + 0.16 * (mt.RERUN_CEILING_SCORED - 1 + i)], s=26,
                    color=INK, marker="x", linewidth=1.0, zorder=4,
                    label="cut at the limit, nothing" if i == 0 else None)
-    ax.axvline(lim, color="#9a9a9a", lw=0.8, ls=(0, (3, 2)), zorder=1)
+    ax.axvline(lim, color="#A39E95", lw=0.8, ls=(0, (3, 2)), zorder=1)
     ax.text(lim - 0.6, 0.6, "limit", ha="right", va="center", fontsize=6, color=MUTED)
     ax.scatter([term_mean], [0.35], s=18, color=C["Terminus-2"], zorder=3,
                edgecolor="white", linewidth=0.4, label="Terminus-2, mean of 24")
@@ -310,7 +323,7 @@ def fig_signflip():
     rows.sort(key=lambda r: (r[1] is None, -(r[1] or 0)))
     fig, ax = plt.subplots(figsize=(COL_W, 2.1))
     n = len(rows)
-    ax.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax.axvline(0, color="#A39E95", lw=0.8, zorder=1)
     ax.grid(axis="x")
     for i, (task, d) in enumerate(rows):
         y = n - 1 - i
@@ -370,8 +383,8 @@ def fig_kdiscterm():
 # and on top by average rank.  Replaces fig_position and fig_heatmap in the
 # paper; both are still generated for the supplementary material.
 # ----------------------------------------------------------------------
-TICK_OTHER = "#cfcfcf"
-TICK_GBDT = "#3a3a3a"
+TICK_OTHER = "#D3CEC6"
+TICK_GBDT = "#3B3A36"
 GBDT = {"XGBoost", "LightGBM", "CatBoost"}
 NAMED = ["MLP-PLR ens.", "XGBoost", "LightGBM", "CatBoost", "Linear"]
 AGENT_STYLE = {"AutoDS-Tools": (C["AutoDS-Tools"], "D"),
@@ -442,15 +455,15 @@ def rk_task_panel(ax, j, nolayer):
     ax.set_ylim(-2.6, 1.2)
     ax.axis("off")
     if j % 2 == 0:      # alternate bands so the strips of neighbouring tasks separate
-        ax.axhspan(-2.6, 1.2, color="#f2f2f2", zorder=-2, lw=0)
+        ax.axhspan(-2.6, 1.2, color="#F4F2EE", zorder=-2, lw=0)
     y0 = RK_Y_TICK0
-    ax.plot([xmin, xmax], [y0, y0], color="#b9b9b9", lw=0.6, zorder=1)
+    ax.plot([xmin, xmax], [y0, y0], color="#C4BFB6", lw=0.6, zorder=1)
     rk_ticks(ax, pub, y0, RK_Y_TICK1)
     # end ticks with the weakest and strongest published values
     for name, ha, fmt in ((worst_name, "left", "{v:.4f}  {n}"),
                           (best_name, "right", "{n}  {v:.4f}")):
         x = pub[name]
-        ax.plot([x, x], [y0, y0 - 0.14], color="#9a9a9a", lw=0.6, zorder=2)
+        ax.plot([x, x], [y0, y0 - 0.14], color="#A39E95", lw=0.6, zorder=2)
         ax.text(x, RK_Y_LAB, fmt.format(v=x, n=name), ha=ha, va="top",
                 fontsize=6, color=MUTED)
     yA, yT, yF = RK_ROWS_B
@@ -478,7 +491,7 @@ def rk_rank_panel(ax, rank, rank_range, rank_nolayer):
     y_axis = -3.40
     for y, _ in rows:
         ax.plot([21.6, 0.4], [y, y], color=RULE, lw=0.4, zorder=0)
-    ax.plot([21.6, 0.4], [y0, y0], color="#b9b9b9", lw=0.6, zorder=1)
+    ax.plot([21.6, 0.4], [y0, y0], color="#C4BFB6", lw=0.6, zorder=1)
     pub_r = {b: rank[b] for b in mt.PUBLISHED}
     rk_ticks(ax, pub_r, y0, y1)
     # named published methods, staggered on two levels above the ticks
@@ -488,12 +501,12 @@ def rk_rank_panel(ax, rank, rank_range, rank_nolayer):
     for name in NAMED:
         x = pub_r[name]
         yl, ha = place[name]
-        ax.plot([x, x], [y1, yl - 0.08], color="#b9b9b9", lw=0.5, zorder=1)
+        ax.plot([x, x], [y1, yl - 0.08], color="#C4BFB6", lw=0.5, zorder=1)
         ax.text(x, yl, f"{name} {x:.1f}", ha=ha, va="bottom", fontsize=6, color=MUTED)
     # rank axis under the rows
-    ax.plot([21.6, 0.4], [y_axis, y_axis], color="#9a9a9a", lw=0.6, zorder=1)
+    ax.plot([21.6, 0.4], [y_axis, y_axis], color="#A39E95", lw=0.6, zorder=1)
     for r in (1, 5, 10, 15, 20):
-        ax.plot([r, r], [y_axis, y_axis - 0.12], color="#9a9a9a", lw=0.6)
+        ax.plot([r, r], [y_axis, y_axis - 0.12], color="#A39E95", lw=0.6)
         ax.text(r, y_axis - 0.18, str(r), ha="center", va="top", fontsize=6, color=MUTED)
     # one row per system, value printed past the better end of the whisker
     values = {"AutoDS-Tools": (rank["AutoDS-Tools"], rank_range["AutoDS-Tools"], True),
@@ -574,9 +587,9 @@ def fig_ranks():
 # the right.  Replaces fig_ranks, whose per-task strips in raw units needed
 # end labels and four rows per task.
 # ======================================================================
-PUB_DOT = "#b0b0b0"
-GBDT_DOT = "#3a3a3a"
-BAND = "#e6e6e6"
+PUB_DOT = "#B4AFA6"         # published methods
+GBDT_DOT = "#3B3A36"        # tuned XGBoost, LightGBM, CatBoost
+BAND = "#ECE8E1"            # middle half of the published methods
 SYS_MARK = {"AutoDS-Tools": ("D", C["AutoDS-Tools"]), "Terminus-2": ("o", C["Terminus-2"]),
             "FEDOT.LLM": ("s", C["FEDOT.LLM"])}
 NOFILE = "AutoDS-Tools, no file"
@@ -644,7 +657,7 @@ def lb_task_panel(ax):
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
     for x in (0.0, 1.0):
-        ax.axvline(x, color="#9a9a9a", lw=0.7, zorder=1)
+        ax.axvline(x, color="#A39E95", lw=0.7, zorder=1)
     dy = {"AutoDS-Tools": -0.22, "Terminus-2": 0.0, "FEDOT.LLM": 0.22}
     for j, task in enumerate(mt.TASKS):
         pub = [mt.normalized(mt.PUBLISHED[b][j], j) for b in mt.PUBLISHED]
@@ -738,7 +751,7 @@ def fig_ablations():
     ax.set_ylim(n - 0.5, -0.5)
     ax.set_xlim(ABL_XLIM[0], ABL_XMAX)
     ax.set_xticks([-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3])
-    ax.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax.axvline(0, color="#A39E95", lw=0.8, zorder=1)
     ax.set_xlabel("Difference in mean normalised score (95% bootstrap interval over tasks)")
     ax.grid(axis="x")
     ax.tick_params(axis="y", length=0)
@@ -754,7 +767,7 @@ def fig_ablations():
         if head:
             labels.append((head, True))
             for a in (ax, ax2):
-                a.axhspan(i - 0.5, i + 0.5, color="#f3f3f3", lw=0, zorder=0)
+                a.axhspan(i - 0.5, i + 0.5, color="#F4F2EE", lw=0, zorder=0)
             continue
         labels.append(("    " + label, False))
         col = C[sysname]
@@ -765,7 +778,7 @@ def fig_ablations():
             ax2.barh(i, 100 * lost / tot, height=0.6, color=col, zorder=3)
             ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
             lost, tot = mt.LOST[lk_r]
-            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
+            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#5A574F", lw=1.0, zorder=4)
             continue
         s = mt.paired_stats(*comps[key])
         lo, hi = max(s["lo"], ABL_XLIM[0]), min(s["hi"], ABL_XLIM[1])
@@ -785,7 +798,7 @@ def fig_ablations():
             ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
         if lk_r:
             lost, tot = mt.LOST[lk_r]
-            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
+            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#5A574F", lw=1.0, zorder=4)
     ax.text(ABL_XLIM[1] + 0.015, -0.6, "tasks\nbetter", ha="left", va="bottom", fontsize=6, color=MUTED)
     ax.set_yticks(range(n))
     ax.set_yticklabels([t for t, _h in labels], fontsize=6.4)
@@ -795,7 +808,7 @@ def fig_ablations():
     ax.text(0, 1.012, "Accuracy", transform=ax.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
     ax2.text(0, 1.012, "Reliability", transform=ax2.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
     ax2.text(1.0, 1.012, "| reference", transform=ax2.transAxes, ha="right", va="bottom",
-             fontsize=6, color="#555555")
+             fontsize=6, color="#5A574F")
     save(fig, "fig_ablations")
 
 if __name__ == "__main__":
