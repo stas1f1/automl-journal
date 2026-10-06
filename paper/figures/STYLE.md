@@ -51,6 +51,6 @@ colours is 40, 51 and 55; in greyscale the markers carry the identity.
 
 ## Status
 
-All figures in the paper use this palette: Fig. 1 (`figures_systems.tex`,
-colours from `main.tex`), Fig. 2 (`fig_leaderboard`), Fig. 3 (`fig_cases`) and
+All figures in the paper use this palette: Fig. 1 (`fig_allsystems.pdf`,
+drawn by hand in the same colours and included from `figures_systems.tex`), Fig. 2 (`fig_leaderboard`), Fig. 3 (`fig_cases`) and
 Fig. 4 (`fig_ablations`).
