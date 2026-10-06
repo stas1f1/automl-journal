@@ -16,8 +16,9 @@ neutrals); `make_case_figures.py` imports them, and Fig. 1 takes them from the
    bands, reference lines) is a warm stone grey.
 3. The instruction file has its own colour, a light lime like a sticky note,
    used only in Fig. 1.
-4. The case-study data panels (Fig. 3a) use three colours of their own that
-   never stand for a system.
+4. The case-study data panels (Fig. 3a) show raw data, no system appears in
+   them, and they use the classic matplotlib colours (tab:blue, tab:orange,
+   tab:gray).
 
 ## Colours
 
@@ -26,10 +27,10 @@ neutrals); `make_case_figures.py` imports them, and Fig. 1 takes them from the
 | AutoDS-Tools | indigo | `#283C8C` |
 | Terminus-2 | raspberry | `#C8457E` |
 | FEDOT.LLM | mustard | `#B98A17` |
-| instruction file (Fig. 1) | lime | `#D6F26A` |
-| case data, primary (Fig. 3a) | cyan | `#2E9CB8` |
-| case data, held-out / reference (Fig. 3a) | sienna | `#9C5B34` |
-| case data, training / background (Fig. 3a) | stone | `#A39A8C` |
+| instruction file (Fig. 1) | pale lime | `#E1EFA4` |
+| case data, primary (Fig. 3a) | matplotlib tab:blue | `#1F77B4` |
+| case data, held-out / reference (Fig. 3a) | matplotlib tab:orange | `#FF7F0E` |
+| case data, training / background (Fig. 3a) | matplotlib tab:gray | `#7F7F7F` |
 | text | ink | `#1F2330` |
 | secondary text | muted | `#6B6862` |
 | published methods | stone | `#B4AFA6` |
@@ -42,7 +43,7 @@ neutrals); `make_case_figures.py` imports them, and Fig. 1 takes them from the
 Minimum pairwise CIELAB distance between the three system colours, over
 normal vision and simulated protanopia, deuteranopia and tritanopia
 (Machado et al. 2009, full severity): 32.9 (Okabe-Ito triple used before:
-17.0). With the lime added: 29.1. Lightness of the system colours is 28, 50
+17.0). With the pale lime added the closest pair stays at 32.9. Lightness of the system colours is 28, 50
 and 60, so they also separate in greyscale print; markers carry the identity
 as well.
 

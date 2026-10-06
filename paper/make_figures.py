@@ -38,10 +38,10 @@ C = {"AutoDS-Tools": "#283C8C",   # indigo
      "Terminus-2": "#C8457E",     # raspberry
      "FEDOT.LLM": "#B98A17",      # mustard
      "context": "#A39E95"}        # stone, anything that is not a system
-KNOWLEDGE = "#D6F26A"      # instruction file: light lime, a sticky-note highlight
-CASE = {"primary": "#2E9CB8",     # cyan: the data a case-study panel shows
-        "highlight": "#9C5B34",   # sienna: the part to predict, a reference line
-        "context": "#A39A8C"}     # stone: training or background data
+KNOWLEDGE = "#E1EFA4"      # instruction file: pale lime, a sticky-note highlight
+CASE = {"primary": "#1F77B4",     # matplotlib tab:blue, the data a case panel shows
+        "highlight": "#FF7F0E",   # tab:orange, the part to predict, a reference line
+        "context": "#7F7F7F"}     # tab:gray, training or background data
 
 TITLE = dict(fontsize=7, fontweight="bold", loc="center")
 PANEL = dict(fontsize=6.5, fontweight="bold", loc="center")
