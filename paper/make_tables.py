@@ -224,7 +224,7 @@ def table_leaderboard():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{The three harnesses as shipped in the TabReD leaderboard: "
+    A(r"\caption{The three harnesses in their default configurations in the TabReD leaderboard: "
       r"official temporal splits, metrics in raw units. Published rows are "
       r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}; agent rows are "
       r"means over three attempts on \texttt{gemma-4-31b-it}. "
