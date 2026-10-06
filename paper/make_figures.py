@@ -789,7 +789,8 @@ def fig_ablations():
                             xytext=((ABL_XLIM[1] - 0.02) if side > 0 else (ABL_XLIM[0] + 0.02), i),
                             arrowprops=dict(arrowstyle="-|>", color=col, lw=1.0, mutation_scale=6))
         x = min(max(s["diff"], ABL_XLIM[0] + 0.005), ABL_XLIM[1] - 0.005)
-        ax.scatter([x], [i], s=22, color=col, zorder=6, edgecolor="white", linewidth=0.5)
+        ax.scatter([x], [i], s=24, marker=SYS_MARK[sysname][0], color=col, zorder=6,
+                   edgecolor="white", linewidth=0.5)
         ax.text(ABL_XLIM[1] + 0.015, i, f"{s['wins']}/{s['n']}", ha="left", va="center",
                 fontsize=6, color=MUTED)
         if lk_t:

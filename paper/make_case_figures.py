@@ -29,7 +29,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from make_figures import C, COL_W, FULL_W, GRID_C, INK, MUTED, PANEL, save  # noqa: E402
+from make_figures import C, CASE, COL_W, FULL_W, GRID_C, INK, MUTED, PANEL, save  # noqa: E402
 
 DATA = Path(os.environ.get("CASES_DATA_DIR", Path(__file__).parent / ".cache" / "cases"))
 SRC = {
@@ -38,9 +38,10 @@ SRC = {
     "openpoly.csv": ("https://raw.githubusercontent.com/WangGroupFDU/Openpoly_benchmark/"
                      "main/data/final_polymer_properties_fromliterature.csv"),
 }
-TEST_C = "#D55E00"      # held-out / target of prediction
-TRAIN_C = "#9a9a9a"
-ACCENT = "#0072B2"
+# Case colours of the house palette (figures/STYLE.md): never a system colour.
+TEST_C = CASE["highlight"]    # held-out / target of prediction, reference lines
+TRAIN_C = CASE["context"]     # training or background data
+ACCENT = CASE["primary"]      # the data the panel shows
 
 
 def fetch(name):

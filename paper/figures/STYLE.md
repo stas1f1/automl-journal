@@ -48,7 +48,8 @@ as well.
 
 ## Status
 
-- Fig. 2 (`fig_leaderboard`) regenerated in the new palette.
-- Fig. 1 (lime, system colours in `main.tex`), Fig. 3 (case colours, bottom
-  row) and Fig. 4 (`fig_ablations`) still use the previous palette and are the
-  next step.
+All figures in the paper use this palette since 6 October 2026: Fig. 1
+(`figures_systems.tex`, colours from `main.tex`, the instruction file as a
+lime tag), Fig. 2 (`fig_leaderboard`), Fig. 3 (`fig_cases`: case colours in
+the top row, system colours and markers in the bottom row) and Fig. 4
+(`fig_ablations`, system colours and markers).
