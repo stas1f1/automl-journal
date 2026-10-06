@@ -651,7 +651,7 @@ def lb_task_panel(ax):
     ax.set_xlim(-0.12, 1.5)
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5])
     ax.set_xticklabels(["0", "", "0.5", "", "1", "", "1.5"])
-    ax.set_xlabel("Normalised score (0 = weakest, 1 = strongest published method)")
+    ax.set_xlabel("Normalised score\n(0 = weakest, 1 = strongest published method)")
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
     for x in (0.0, 1.0):
@@ -678,8 +678,8 @@ def lb_task_panel(ax):
 
 def fig_leaderboard():
     fig = plt.figure(figsize=(FULL_W, 3.75))
-    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.35], left=0.145, right=0.995,
-                          top=0.85, bottom=0.11, wspace=0.40)
+    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 1.35], left=0.145, right=0.985,
+                          top=0.85, bottom=0.135, wspace=0.40)
     ax_a = fig.add_subplot(gs[0]); ax_b = fig.add_subplot(gs[1])
     lb_rank_panel(ax_a); lb_task_panel(ax_b)
     for ax, letter, head in ((ax_a, "a", "Leaderboard by average rank"),
