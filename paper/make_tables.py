@@ -1535,12 +1535,14 @@ def friedman_nemenyi():
     return fr.statistic, fr.pvalue, cd
 
 
-def rank_interval(method, n_boot=20000, seed=1):
-    """95% bootstrap interval of the average rank over tasks."""
+def rank_interval(method, n_boot=20000, seed=1, task_ranks=None):
+    """95% bootstrap interval of the average rank over tasks.  task_ranks gives
+    the per-task ranks directly, for a row outside the main pool."""
     import random
-    r, _pool = ranks()
+    if task_ranks is None:
+        task_ranks = ranks()[0][method]
     rng = random.Random(seed)
-    boots = sorted(st.mean(rng.choices(r[method], k=len(r[method]))) for _ in range(n_boot))
+    boots = sorted(st.mean(rng.choices(task_ranks, k=len(task_ranks))) for _ in range(n_boot))
     return boots[int(0.025 * n_boot)], boots[int(0.975 * n_boot) - 1]
 
 

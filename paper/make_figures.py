@@ -394,13 +394,17 @@ RK_ROWS_B = (-0.22, -0.82, -1.42)      # AutoDS on/off, Terminus-2, FEDOT.LLM
 RK_Y_LAB = -2.02                       # end labels (weakest, strongest published)
 
 
-def rk_avg_rank(pool):
+def rk_task_ranks(pool):
     r = {k: [] for k in pool}
     for j in range(len(mt.TASKS)):
         order = sorted(pool, key=lambda m: -pool[m][j] if mt.HIB[j] else pool[m][j])
         for pos, m in enumerate(order, 1):
             r[m].append(pos)
-    return {k: st.mean(v) for k, v in r.items()}
+    return r
+
+
+def rk_avg_rank(pool):
+    return {k: st.mean(v) for k, v in rk_task_ranks(pool).items()}
 
 
 def rk_corner(agent, sign):
@@ -608,7 +612,8 @@ def lb_rank_panel(ax):
     # rank of AutoDS-Tools with the file removed, computed in place of the deployed row
     pool2 = {**mt.PUBLISHED, "Terminus-2": mt.AGENTS["Terminus-2"],
              "FEDOT.LLM": mt.AGENTS["FEDOT.LLM"], "AutoDS-Tools": nolayer}
-    rk_nofile = rk_avg_rank(pool2)["AutoDS-Tools"]
+    r_nofile = rk_task_ranks(pool2)["AutoDS-Tools"]
+    rk_nofile = st.mean(r_nofile)
     entries = [(m, avg[m]) for m in pool] + [(NOFILE, rk_nofile)]
     entries.sort(key=lambda e: e[1])
     n = len(entries)
@@ -623,13 +628,12 @@ def lb_rank_panel(ax):
     for i, (m, x) in enumerate(entries):
         if m in mt.AGENTS or m == NOFILE:
             sysname = "AutoDS-Tools" if m == NOFILE else m
-            if m != NOFILE:
-                lo, hi = mt.rank_interval(m)
-                ax.plot([lo, hi], [i, i], color=SYS_MARK[sysname][1], lw=1.2, zorder=5,
-                        solid_capstyle="butt")
+            lo, hi = (mt.rank_interval(m) if m != NOFILE
+                      else mt.rank_interval(None, task_ranks=r_nofile))
+            ax.plot([lo, hi], [i, i], color=SYS_MARK[sysname][1], lw=1.2, zorder=5,
+                    solid_capstyle="butt")
             _sys_marker(ax, x, i, sysname, filled=(m != NOFILE), size=30)
-            xr = lo if m != NOFILE else x
-            ax.text(xr - (0.45 if m != NOFILE else 0.8), i, f"{x:.1f}", ha="left", va="center", fontsize=6,
+            ax.text(lo - 0.45, i, f"{x:.1f}", ha="left", va="center", fontsize=6,
                     color=SYS_MARK[sysname][1], fontweight="bold")
             labels.append((m, True, SYS_MARK[sysname][1]))
         else:
