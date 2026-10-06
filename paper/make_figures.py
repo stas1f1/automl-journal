@@ -613,7 +613,7 @@ def lb_rank_panel(ax):
     entries.sort(key=lambda e: e[1])
     n = len(entries)
     ax.set_ylim(n - 0.4, -0.6)
-    ax.set_xlim(0.5, 21.5)
+    ax.set_xlim(21.5, 0.5)   # mirrored: better rank to the right, as in panel b
     ax.set_xticks([1, 5, 10, 15, 20])
     ax.set_xlabel("Average rank over the eight tasks (1 = best)")
     ax.grid(axis="x")
@@ -628,8 +628,8 @@ def lb_rank_panel(ax):
                 ax.plot([lo, hi], [i, i], color=SYS_MARK[sysname][1], lw=1.2, zorder=5,
                         solid_capstyle="butt")
             _sys_marker(ax, x, i, sysname, filled=(m != NOFILE), size=30)
-            xr = hi if m != NOFILE else x
-            ax.text(xr + 0.45, i, f"{x:.1f}", ha="left", va="center", fontsize=6,
+            xr = lo if m != NOFILE else x
+            ax.text(xr - (0.45 if m != NOFILE else 0.8), i, f"{x:.1f}", ha="left", va="center", fontsize=6,
                     color=SYS_MARK[sysname][1], fontweight="bold")
             labels.append((m, True, SYS_MARK[sysname][1]))
         else:
