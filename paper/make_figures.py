@@ -714,104 +714,145 @@ def fig_leaderboard():
 # submission.  One figure answers "what moves the result".
 # ======================================================================
 ABL_ROWS = [
-    # (group header or None, label, comparison key, system colour, lost key treated, lost key reference)
-    ("Harness alone (instruction file removed)", None, None, None, None, None),
-    (None, "AutoDS-Tools vs Terminus-2", "archAutoDSvsTerminus", "AutoDS-Tools", "autods_none", "term_enriched"),
-    (None, "FEDOT.LLM vs Terminus-2", "shipFedotvsTerminus", "FEDOT.LLM", "fedot", "term_stock"),
-    (None, "AutoDS-Tools vs FEDOT.LLM", "archAutoDSvsFedot", "AutoDS-Tools", "autods_none", None),
-    ("Instruction file inside AutoDS-Tools", None, None, None, None, None),
-    (None, "whole file", "fileBoth", "AutoDS-Tools", "autods_both", "autods_none"),
-    (None, "library part only", "fileTool", "AutoDS-Tools", "autods_tool", "autods_none"),
-    (None, "training-discipline part only", "fileDisc", "AutoDS-Tools", "autods_disc", "autods_none"),
-    ("Same file appended to the Terminus-2 task", None, None, None, None, None),
-    (None, "whole file", "termBoth", "Terminus-2", "term_kboth", "term_none_axis"),
-    (None, "library part only", "termTool", "Terminus-2", "term_ktool", "term_none_axis"),
-    (None, "training-discipline part only", "termDisc", "Terminus-2", "term_kdisc", "term_none_axis"),
-    (None, "discipline part, time advice deleted", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
-    ("Container image (Terminus-2)", None, None, None, None, None),
-    (None, "libraries pre-installed vs stock", "image", "Terminus-2", "term_enriched", "term_stock"),
-    ("Language model", None, None, None, None, None),
-    (None, "Terminus-2: gemma-4-26b-a4b vs 31b", "termSmall", "Terminus-2", "term_small", "term_none_axis"),
-    (None, "Terminus-2: glm-4.7 vs gemma-4-31b", "termBig", "Terminus-2", "term_big", "term_none_axis"),
-    (None, "AutoDS-Tools: gemma-4-26b-a4b vs 31b", "autodsSmall", "AutoDS-Tools", "autods_small", "autods_both"),
-    (None, "AutoDS-Tools: glm-4.7 vs gemma-4-31b", "autodsBig", "AutoDS-Tools", "autods_big", "autods_both"),
-    ("Instruction file inside AutoDS-Tools on MLAgentBench", None, None, None, None, None),
-    (None, "whole file (a working script is supplied)", None, "AutoDS-Tools", "mlab_autods_file", "mlab_autods_none"),
+    # (group header or None, left = reference, right = changed, comparison key
+    #  (right minus left), system of the right side, lost key right, lost key
+    #  left[, system of the left side when two systems are compared])
+    ("Harness, no instruction file", None, None, None, None, None, None),
+    (None, "Terminus-2", "AutoDS-Tools", "archAutoDSvsTerminus", "AutoDS-Tools", "autods_none", "term_enriched", "Terminus-2"),
+    (None, "Terminus-2", "FEDOT.LLM", "shipFedotvsTerminus", "FEDOT.LLM", "fedot", "term_stock", "Terminus-2"),
+    (None, "FEDOT.LLM", "AutoDS-Tools", "archAutoDSvsFedot", "AutoDS-Tools", "autods_none", "fedot", "FEDOT.LLM"),
+    ("Instruction file in AutoDS-Tools", None, None, None, None, None, None),
+    (None, "no file", "whole file", "fileBoth", "AutoDS-Tools", "autods_both", "autods_none"),
+    (None, "no file", "library part", "fileTool", "AutoDS-Tools", "autods_tool", "autods_none"),
+    (None, "no file", "discipline part", "fileDisc", "AutoDS-Tools", "autods_disc", "autods_none"),
+    ("Same file in the Terminus-2 task", None, None, None, None, None, None),
+    (None, "no file", "whole file", "termBoth", "Terminus-2", "term_kboth", "term_none_axis"),
+    (None, "no file", "library part", "termTool", "Terminus-2", "term_ktool", "term_none_axis"),
+    (None, "no file", "discipline part", "termDisc", "Terminus-2", "term_kdisc", "term_none_axis"),
+    (None, "no file", "discipline, time advice cut", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
+    ("Container image, Terminus-2", None, None, None, None, None, None),
+    (None, "stock", "libraries pre-installed", "image", "Terminus-2", "term_enriched", "term_stock"),
+    ("Language model, Terminus-2", None, None, None, None, None, None),
+    (None, "gemma-4-31b", "gemma-4-26b-a4b", "termSmall", "Terminus-2", "term_small", "term_none_axis"),
+    (None, "gemma-4-31b", "glm-4.7", "termBig", "Terminus-2", "term_big", "term_none_axis"),
+    ("Language model, AutoDS-Tools", None, None, None, None, None, None),
+    (None, "gemma-4-31b", "gemma-4-26b-a4b", "autodsSmall", "AutoDS-Tools", "autods_small", "autods_both"),
+    (None, "gemma-4-31b", "glm-4.7", "autodsBig", "AutoDS-Tools", "autods_big", "autods_both"),
+    ("Instruction file in AutoDS-Tools, MLAgentBench", None, None, None, None, None, None),
+    (None, "no file", "whole file", None, "AutoDS-Tools", "mlab_autods_file", "mlab_autods_none"),
 ]
 ABL_XLIM = (-0.32, 0.32)
-ABL_XMAX = 0.40   # axis end, leaves room for the win counts
 
 
 def fig_ablations():
+    """Every factor the paper varies.  One row per comparison: the reference
+    configuration is named left of the axes, the changed one right of the
+    accuracy axis.  Both panels read the same way: a mark right of zero means
+    the right configuration is better.  Accuracy: paired difference in mean
+    normalised score.  Reliability: change in the share of trials that ended
+    with a submission."""
+    from matplotlib.transforms import blended_transform_factory as blend
     comps = mt.comparison_set()
     rows = ABL_ROWS
     n = len(rows)
-    fig = plt.figure(figsize=(FULL_W, 4.3))
-    gs = fig.add_gridspec(1, 2, width_ratios=[1.0, 0.36], left=0.33, right=0.985,
-                          top=0.93, bottom=0.10, wspace=0.10)
-    ax = fig.add_subplot(gs[0]); ax2 = fig.add_subplot(gs[1], sharey=ax)
+    W, H = FULL_W, 4.6
+    fig = plt.figure(figsize=(W, H))
+    # columns in inches: left labels | accuracy | right labels + tasks | gap | reliability | counts
+    x0, wl, wa, wr, gap, wrel = 0.06, 0.80, 2.05, 2.08, 0.52, 0.95
+    bot, top = 0.42, H - 0.42
+    ax = fig.add_axes([(x0 + wl) / W, bot / H, wa / W, (top - bot) / H])
+    xrel = x0 + wl + wa + wr + gap
+    ax2 = fig.add_axes([xrel / W, bot / H, wrel / W, (top - bot) / H], sharey=ax)
     ax.set_ylim(n - 0.5, -0.5)
-    ax.set_xlim(ABL_XLIM[0], ABL_XMAX)
+    ax.set_xlim(*ABL_XLIM)
     ax.set_xticks([-0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3])
+    ax.set_xticklabels(["0.3", "0.2", "0.1", "0", "0.1", "0.2", "0.3"])
     ax.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
-    ax.set_xlabel("Difference in mean normalised score (95% bootstrap interval over tasks)")
+    ax.set_xlabel("Difference in mean normalised score", fontsize=6.6)
     ax.grid(axis="x")
-    ax.tick_params(axis="y", length=0)
+    ax.tick_params(axis="y", length=0, labelleft=False)
     ax.spines["left"].set_visible(False)
-    ax2.set_xlim(0, 100)
-    ax2.set_xticks([0, 50, 100])
-    ax2.set_xlabel("No submission, % of trials")
+    ax2.set_xlim(-100, 100)
+    ax2.set_xticks([-100, -50, 0, 50, 100])
+    ax2.set_xticklabels(["100", "", "0", "", "100"])
+    ax2.axvline(0, color="#9a9a9a", lw=0.8, zorder=1)
+    ax2.set_xlabel("Difference, percentage points", fontsize=6.6)
     ax2.tick_params(axis="y", length=0, labelleft=False)
     ax2.spines["left"].set_visible(False)
     ax2.grid(axis="x")
-    labels = []
-    for i, (head, label, key, sysname, lk_t, lk_r) in enumerate(rows):
+    tr = blend(fig.transFigure, ax.transData)
+    xl = (x0 + wl - 0.06) / W            # right edge of the left labels
+    xr = (x0 + wl + wa + 0.11) / W       # left edge of the right labels
+    xt = (x0 + wl + wa + wr - 0.34) / W  # centre of the task-count column
+    xc = (xrel + wrel + 0.06) / W        # submission count of the right side
+    xcl = (xrel - 0.06) / W              # submission count of the left side
+    # grey band behind the task counts, so the column reads as its own block
+    from matplotlib.patches import Rectangle
+    fig.add_artist(Rectangle((xt - 0.30 / W, bot / H), 0.60 / W, (top + 0.30 - bot) / H,
+                             transform=fig.transFigure, color="#ececec", lw=0, zorder=0))
+    for i, (head, left, right, key, sysname, lk_a, lk_b, *rest) in enumerate(rows):
+        left_sys = rest[0] if rest else None
         if head:
-            labels.append((head, True))
             for a in (ax, ax2):
                 a.axhspan(i - 0.5, i + 0.5, color="#f3f3f3", lw=0, zorder=0)
+            fig.text(x0 / W, i, head, transform=tr, ha="left", va="center",
+                     fontsize=6.6, fontweight="bold", color=INK)
             continue
-        labels.append(("    " + label, False))
         col = C[sysname]
+        fig.text(xl, i, left, transform=tr, ha="right", va="center", fontsize=6.4,
+                 color=C[left_sys] if left_sys else INK, fontweight="bold" if left_sys else "normal")
+        fig.text(xr, i, right, transform=tr, ha="left", va="center", fontsize=6.4,
+                 color=col if left_sys else INK, fontweight="bold" if left_sys else "normal")
         if key is None:
-            ax.text(0, i, "scores stay in the task metrics (MLAgentBench table)", ha="center", va="center",
+            ax.text(0, i, "no common scale, see Table 4", ha="center", va="center",
                     fontsize=6, color=MUTED, style="italic")
-            lost, tot = mt.LOST[lk_t]
-            ax2.barh(i, 100 * lost / tot, height=0.6, color=col, zorder=3)
-            ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
-            lost, tot = mt.LOST[lk_r]
-            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
-            continue
-        s = mt.paired_stats(*comps[key])
-        lo, hi = max(s["lo"], ABL_XLIM[0]), min(s["hi"], ABL_XLIM[1])
-        ax.plot([lo, hi], [i, i], color=col, lw=1.3, zorder=4, solid_capstyle="butt")
-        for v, side in ((s["lo"], -1), (s["hi"], 1)):
-            if v < ABL_XLIM[0] or v > ABL_XLIM[1]:   # interval runs off the axis
-                ax.annotate("", xy=(ABL_XLIM[1] if side > 0 else ABL_XLIM[0], i),
-                            xytext=((ABL_XLIM[1] - 0.02) if side > 0 else (ABL_XLIM[0] + 0.02), i),
-                            arrowprops=dict(arrowstyle="-|>", color=col, lw=1.0, mutation_scale=6))
-        x = min(max(s["diff"], ABL_XLIM[0] + 0.005), ABL_XLIM[1] - 0.005)
-        ax.scatter([x], [i], s=24, marker=SYS_MARK[sysname][0], color=col, zorder=6,
-                   edgecolor="white", linewidth=0.5)
-        ax.text(ABL_XLIM[1] + 0.015, i, f"{s['wins']}/{s['n']}", ha="left", va="center",
-                fontsize=6, color=MUTED)
-        if lk_t:
-            lost, tot = mt.LOST[lk_t]
-            ax2.barh(i, 100 * lost / tot, height=0.6, color=col, zorder=3)
-            ax2.text(100 * lost / tot + 2, i, f"{lost}/{tot}", ha="left", va="center", fontsize=6, color=INK)
-        if lk_r:
-            lost, tot = mt.LOST[lk_r]
-            ax2.plot([100 * lost / tot] * 2, [i - 0.38, i + 0.38], color="#555555", lw=1.0, zorder=4)
-    ax.text(ABL_XLIM[1] + 0.015, -0.6, "tasks\nbetter", ha="left", va="bottom", fontsize=6, color=MUTED)
-    ax.set_yticks(range(n))
-    ax.set_yticklabels([t for t, _h in labels], fontsize=6.4)
-    for tick, (_t, head) in zip(ax.get_yticklabels(), labels):
-        if head:
-            tick.set_fontweight("bold")
-    ax.text(0, 1.012, "Accuracy", transform=ax.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
-    ax2.text(0, 1.012, "Reliability", transform=ax2.transAxes, ha="left", va="bottom", fontsize=7, fontweight="bold")
-    ax2.text(1.0, 1.012, "| reference", transform=ax2.transAxes, ha="right", va="bottom",
-             fontsize=6, color="#555555")
+        else:
+            s = mt.paired_stats(*comps[key])
+            lo, hi = max(s["lo"], ABL_XLIM[0]), min(s["hi"], ABL_XLIM[1])
+            # two systems: the part of the interval left of zero takes the colour of
+            # the left system, the part right of zero that of the right system, and
+            # the point takes the marker of the system on whose side the mean lies
+            col_l = C[left_sys] if left_sys else col
+            if lo < 0:
+                ax.plot([lo, min(hi, 0)], [i, i], color=col_l, lw=1.3, zorder=4, solid_capstyle="butt")
+            if hi > 0:
+                ax.plot([max(lo, 0), hi], [i, i], color=col, lw=1.3, zorder=4, solid_capstyle="butt")
+            for v, side in ((s["lo"], -1), (s["hi"], 1)):
+                if v < ABL_XLIM[0] or v > ABL_XLIM[1]:   # interval runs off the axis
+                    ax.annotate("", xy=(ABL_XLIM[1] if side > 0 else ABL_XLIM[0], i),
+                                xytext=((ABL_XLIM[1] - 0.02) if side > 0 else (ABL_XLIM[0] + 0.02), i),
+                                arrowprops=dict(arrowstyle="-|>", color=col if side > 0 else col_l,
+                                                lw=1.0, mutation_scale=6))
+            x = min(max(s["diff"], ABL_XLIM[0] + 0.005), ABL_XLIM[1] - 0.005)
+            winner = sysname if (s["diff"] >= 0 or not left_sys) else left_sys
+            ax.scatter([x], [i], s=24, marker=SYS_MARK[winner][0], color=C[winner], zorder=6,
+                       edgecolor="white", linewidth=0.5)
+            ra, rb = comps[key]                        # right, left per task
+            left_wins = sum(1 for j in range(len(mt.TASKS))
+                            if ra[j] is not None and rb[j] is not None and ra[j] != rb[j]
+                            and (rb[j] > ra[j]) == mt.HIB[j])
+            fig.text(xt, i, f"{left_wins} : {s['wins']}", transform=tr, ha="center", va="center",
+                     fontsize=6.2, color=INK)
+        la, ta = mt.LOST[lk_a]
+        lb, tb = mt.LOST[lk_b]
+        sa, sb = ta - la, tb - lb                      # trials with a submission
+        d = 100 * sa / ta - 100 * sb / tb
+        if abs(d) > 0.5:
+            ax2.barh(i, d, height=0.55, color=col, zorder=3, lw=0)
+        cc = INK
+        fig.text(xcl, i, f"{sb}/{tb}", transform=tr, ha="right", va="center", fontsize=5.8, color=cc)
+        fig.text(xc, i, f"{sa}/{ta}", transform=tr, ha="left", va="center", fontsize=5.8, color=cc)
+    # headers
+    hy = 1.012
+    for a_, title, lt, rt in ((ax, "Accuracy", "← left better", "right better →"),
+                              (ax2, "Trials with a submission", "← left", "right →")):
+        a_.text(0.5, hy + 0.035, title, transform=a_.transAxes, ha="center", va="bottom",
+                fontsize=7, fontweight="bold")
+        a_.text(0.0, hy, lt, transform=a_.transAxes, ha="left", va="bottom", fontsize=6.0, color=MUTED)
+        a_.text(1.0, hy, rt, transform=a_.transAxes, ha="right", va="bottom", fontsize=6.0, color=MUTED)
+    fig.text(xt, (top + 0.02) / H, "tasks won\nleft : right", ha="center", va="bottom",
+             fontsize=5.8, color=MUTED)
+
     save(fig, "fig_ablations")
 
 if __name__ == "__main__":
