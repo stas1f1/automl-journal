@@ -1,0 +1,133 @@
+[?2004hroot@5caf115b27ac:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@5caf115b27ac:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@5caf115b27ac:/workspace# ls -lh
+[?2004ltotal 8.2M
+-rw-r--r-- 1 root root 1.6M Sep 10 10:03 test.csv
+-rw-r--r-- 1 root root 6.6M Sep 10 10:03 train.csv
+[?2004hroot@5caf115b27ac:/workspace# head -n 5 train.csv
+[?2004ljobid,cnumr,cnumat,nnumr,nnuma,elpl,pri,mszl,freq_req,jobenv_req,success
+7162,768,768,16,16,43200.0,127,1.8446744073709552e+19,2000,jobenv_req_0,0
+40183,384,384,8,8,86400.0,127,1.8446744073709552e+19,2000,jobenv_req_0,1
+6933,18480,18480,385,480,18000.0,127,1.8446744073709552e+19,2000,jobenv_req_0,0
+93130,96,96,2,2,7200.0,127,1.8446744073709552e+19,2200,jobenv_req_0,1
+[?2004hroot@5caf115b27ac:/workspace# head -n 5 test.csv
+[?2004ljobid,cnumr,cnumat,nnumr,nnuma,elpl,pri,mszl,freq_req,jobenv_req
+34311,96,96,2,2,14400.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+69838,48,48,1,1,86400.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+610,96,96,2,2,43200.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+7946,48,48,1,1,3600.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+[?2004hroot@5caf115b27ac:/workspace# wc -l train.csv
+[?2004l93582 train.csv
+[?2004hroot@5caf115b27ac:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> from sklearn.ensemble import RandomForestClassifier
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train_df = pd.read_csv('train.csv')
+[?2004l[?2004h> test_df = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Preprocessing
+[?2004l[?2004h> X = train_df.drop(['jobid', 'success'], axis=1)
+[?2004l[?2004h> y = train_df['success']
+[?2004l[?2004h> X_test = test_df.drop(['jobid'], axis=1)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Handle categorical variable jobenv_req
+[?2004l[?2004h> X = pd.get_dummies(X, columns=['jobenv_req'])
+[?2004l[?2004h> X_test = pd.get_dummies(X_test, columns=['jobenv_req'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Align columns between train and test
+[?2004l[?2004h> train_cols = X.columns
+[?2004l[?2004h> X_test = X_test.reindex(columns=train_cols, fill_value=0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split for validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Train model
+[?2004l[?2004h> model = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42, class_weight='balanced')
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate
+[?2004l[?2004h> val_preds = model.predict(X_val)
+[?2004l[?2004h> print(f'Validation Accuracy: {accuracy_score(y_val, val_preds):.4f}')
+[?2004l[?2004h> print(f'Balanced Accuracy: {balanced_accuracy_score(y_val, val_preds):.4f}')
+[?2004l[?2004h> print(classification_report(y_val, val_preds))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> test_preds = model.predict(X_test)
+[?2004l[?2004h> submission = pd.DataFrame({'jobid': test_df['jobid'], 'success': test_preds})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print('Submission file saved.')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@5caf115b27ac:/workspace# python3 solution.py
+[?2004lValidation Accuracy: 0.7683
+Balanced Accuracy: 0.8188
+              precision    recall  f1-score   support
+
+           0       0.32      0.88      0.47      2175
+           1       0.98      0.75      0.85     16542
+
+    accuracy                           0.77     18717
+   macro avg       0.65      0.82      0.66     18717
+weighted avg       0.90      0.77      0.81     18717
+
+Submission file saved.
+[?2004hroot@5caf115b27ac:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> from sklearn.ensemble import RandomForestClassifier
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train_df = pd.read_csv('train.csv')
+[?2004l[?2004h> test_df = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Preprocessing
+[?2004l[?2004h> X = train_df.drop(['jobid', 'success'], axis=1)
+[?2004l[?2004h> y = train_df['success']
+[?2004l[?2004h> X_test = test_df.drop(['jobid'], axis=1)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Handle categorical variable jobenv_req
+[?2004l[?2004h> X = pd.get_dummies(X, columns=['jobenv_req'])
+[?2004l[?2004h> X_test = pd.get_dummies(X_test, columns=['jobenv_req'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Align columns between train and test
+[?2004l[?2004h> train_cols = X.columns
+[?2004l[?2004h> X_test = X_test.reindex(columns=train_cols, fill_value=0)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split for validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Train model - Removing 'balanced' weight and increasing depth for better accuracy
+[?2004l[?2004h> model = RandomForestClassifier(n_estimators=200, max_depth=20, random_state=42)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate
+[?2004l[?2004h> val_preds = model.predict(X_val)
+[?2004l[?2004h> print(f'Validation Accuracy: {accuracy_score(y_val, val_preds):.4f}')
+[?2004l[?2004h> print(f'Balanced Accuracy: {balanced_accuracy_score(y_val, val_preds):.4f}')
+[?2004l[?2004h> print(classification_report(y_val, val_preds))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> test_preds = model.predict(X_test)
+[?2004l[?2004h> submission = pd.DataFrame({'jobid': test_df['jobid'], 'success': test_preds})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print('Submission file saved.')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@5caf115b27ac:/workspace# python3 solution.py
+[?2004lValidation Accuracy: 0.9232
+Balanced Accuracy: 0.7110
+              precision    recall  f1-score   support
+
+           0       0.82      0.43      0.57      2175
+           1       0.93      0.99      0.96     16542
+
+    accuracy                           0.92     18717
+   macro avg       0.88      0.71      0.76     18717
+weighted avg       0.92      0.92      0.91     18717
+
+Submission file saved.
+[?2004hroot@5caf115b27ac:/workspace# 

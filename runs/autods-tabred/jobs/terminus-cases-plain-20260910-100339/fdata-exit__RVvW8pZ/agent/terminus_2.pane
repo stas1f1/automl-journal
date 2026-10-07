@@ -1,0 +1,96 @@
+[?2004hroot@718af8af5ded:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@718af8af5ded:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@718af8af5ded:/workspace# ls -la /workspace
+[?2004ltotal 8324
+drwxr-xr-x 2 root root    4096 Sep 10 10:03 .
+drwxr-xr-x 1 root root    4096 Sep 10 10:08 ..
+-rw-r--r-- 1 root root 1664945 Sep 10 10:03 test.csv
+-rw-r--r-- 1 root root 6844990 Sep 10 10:03 train.csv
+[?2004hroot@718af8af5ded:/workspace# head -n 5 /workspace/train.csv
+[?2004ljobid,cnumr,cnumat,nnumr,nnuma,elpl,pri,mszl,freq_req,jobenv_req,success
+7162,768,768,16,16,43200.0,127,1.8446744073709552e+19,2000,jobenv_req_0,0
+40183,384,384,8,8,86400.0,127,1.8446744073709552e+19,2000,jobenv_req_0,1
+6933,18480,18480,385,480,18000.0,127,1.8446744073709552e+19,2000,jobenv_req_0,0
+93130,96,96,2,2,7200.0,127,1.8446744073709552e+19,2200,jobenv_req_0,1
+[?2004hroot@718af8af5ded:/workspace# head -n 5 /workspace/test.csv
+[?2004ljobid,cnumr,cnumat,nnumr,nnuma,elpl,pri,mszl,freq_req,jobenv_req
+34311,96,96,2,2,14400.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+69838,48,48,1,1,86400.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+610,96,96,2,2,43200.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+7946,48,48,1,1,3600.0,127,1.8446744073709552e+19,2000,jobenv_req_0
+[?2004hroot@718af8af5ded:/workspace# wc -l /workspace/train.csv /workspace/test.csv
+[?2004l  93582 /workspace/train.csv
+  23397 /workspace/test.csv
+ 116979 total
+[?2004hroot@718af8af5ded:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> from sklearn.ensemble import RandomForestClassifier
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Define features and target
+[?2004l[?2004h> features = ['cnumr', 'cnumat', 'nnumr', 'nnuma', 'elpl', 'pri', 'mszl', 'freq_req', 'jobenv_req']
+[?2004l[?2004h> target = 'success'
+[?2004l[?2004h> 
+[?2004l[?2004h> # Preprocessing
+[?2004l[?2004h> # Convert categorical 'jobenv_req' to numeric
+[?2004l[?2004h> # Use category codes as a simple way to handle the categorical variable
+[?2004l[?2004h> for df in [train, test]:
+[?2004l[?2004h>     df['jobenv_req'] = df['jobenv_req'].astype('category').cat.codes
+[?2004l[?2004h> 
+[?2004l[?2004h> # Check for missing values (fill with median if any)
+[?2004l[?2004h> X = train[features].fillna(train[features].median())
+[?2004l[?2004h> y = train[target]
+[?2004l[?2004h> X_test = test[features].fillna(train[features].median())
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split for validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Train Random Forest
+[?2004l[?2004h> model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Evaluate
+[?2004l[?2004h> val_preds = model.predict(X_val)
+[?2004l[?2004h> acc = accuracy_score(y_val, val_preds)
+[?2004l[?2004h> b_acc = balanced_accuracy_score(y_val, val_preds)
+[?2004l[?2004h> print(f'Validation Accuracy: {acc:.4f}')
+[?2004l[?2004h> print(f'Validation Balanced Accuracy: {b_acc:.4f}')
+[?2004l[?2004h> print('\nClassification Report:\n', classification_report(y_val, val_preds))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> test_preds = model.predict(X_test)
+[?2004l[?2004h> submission = pd.DataFrame({'jobid': test['jobid'], 'success': test_preds})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print('Submission file saved to submission.csv')
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@718af8af5ded:/workspace# python3 solution.py
+[?2004lValidation Accuracy: 0.9231
+Validation Balanced Accuracy: 0.7107
+
+Classification Report:
+               precision    recall  f1-score   support
+
+           0       0.82      0.43      0.57      2175
+           1       0.93      0.99      0.96     16542
+
+    accuracy                           0.92     18717
+   macro avg       0.87      0.71      0.76     18717
+weighted avg       0.92      0.92      0.91     18717
+
+Submission file saved to submission.csv
+[?2004hroot@718af8af5ded:/workspace# head -n 5 submission.csv
+[?2004ljobid,success
+34311,1
+69838,1
+610,1
+7946,1
+[?2004hroot@718af8af5ded:/workspace# wc -l submission.csv
+[?2004l23397 submission.csv
+[?2004hroot@718af8af5ded:/workspace# 

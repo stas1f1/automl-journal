@@ -5,34 +5,50 @@
 
 \subsection{What the results say about harness design}
 
-On TabReD, the six-agent AutoDS-Tools with its instruction file ranks first, and
-the workflow FEDOT.LLM and the minimal harness Terminus-2 are level on
-average. The ablations trace that order to one decision: who builds the
-model. Where the agent writes its own code, it fits one gradient-boosting
-configuration and stops; where an AutoML library builds the model, the
-library searches. The instruction file of AutoDS-Tools moves that decision
-to LightAutoML; FEDOT.LLM makes it by construction. With that decision held
-fixed, the harness changes the mean score little, and it changes
-reliability, wall-clock time and the set of tasks a system can attempt.
+On TabReD, AutoDS-Tools with its instruction file ranks first, and
+FEDOT.LLM and Terminus-2 are level on average. The order follows who builds
+the model and whether it is tuned. An agent writing its own code fits one
+untuned gradient-boosting model. LightAutoML tunes and blends its boosting
+models. The FEDOT backend searches only when fitting its default pipeline
+leaves time, which happened on two TabReD tasks of eight. With the model
+built the same way, the harness changes the mean score little. It decides
+reliability, wall-clock time, the tasks a system can attempt and whether a
+library call ends in a submission. FEDOT.LLM calls its backend on every
+task, and the repair loop of AutoDS-Tools waits out the long LightAutoML fit
+(no cell lost more than one trial of 24). Terminus-2 with the same
+instruction submits nothing in \ktToolLost{} of \ktToolTrials{} trials,
+because it reads the silent terminal of a long fit as a failure.
 
-The instruction file is the means of that delegation in AutoDS-Tools, and
-the ablations show its limits. It pays inside the harness it was written
-for, from scratch, on the task family whose library it names. Appended to
-another harness it ends about half of the trials or more; applied where a
-working script already exists it ends whole tasks. Both failures trace to
-specific sentences, the advice on training time and the instruction to
-replace the supplied tool, and both are invisible to an ablation that
-switches the file as one block. This dependence on context may explain the
-disagreement among published ablations of instruction files and retrieved
-knowledge: measuring a file in one harness, from one starting point, does
-not establish its effect in another.
+Task by task, AutoDS-Tools with its file is the best of the three on six of
+eight TabReD tasks. Its gain from the file grows with the distance between
+the hand-written model and tuned gradient boosting, from near zero on
+\texttt{homesite-insurance} and \texttt{delivery-eta} to the largest on
+\texttt{ecom-offers} and \texttt{cooking-time}; on
+\texttt{sberbank-housing}, the smallest table, LightAutoML adds nothing.
+FEDOT.LLM wins on classification, where its default ensemble is strong
+(\texttt{ecom-offers}, F-DATA), and on the small \texttt{sberbank-housing},
+where its search runs; on large regression tables it trails with an
+untuned random forest. Terminus-2 wins no TabReD task. On maize, whose test
+set holds unseen location-years, its simple models transfer better than
+the tuned ensemble of AutoDS-Tools.
 
-Delegation does not close the gap to the strongest published method. The
-best cell is on par with tuned XGBoost, and FEDOT.LLM, which searches inside
-its backend, beats every published method on one task and falls near the
-bottom on four. The reference methods are tuned over fifteen seeds, and the
-traces suggest that a search an agent runs over its own code, which none of
-our agents attempted, is the next addition to test.
+The file helps in the setting it was written for: its own harness, a task
+solved from scratch, the task family of the library it names. Appended to
+the Terminus-2 task, it leaves \ktBothLost{} of 24 to \ktToolLost{} of
+\ktToolTrials{} trials per cell without a submission; given a working
+script, it leaves \mlabWiped{} of \mlabRepeated{} MLAgentBench tasks without
+one. Both failures come from specific sentences, the advice on training
+time and the instruction to replace the supplied tool, and switching the
+whole file on and off cannot locate them. This may explain why published
+ablations of instruction files and retrieved knowledge disagree: a file
+measured in one harness and from one starting point has to be measured
+again in another.
+
+No configuration reaches the strongest published method; the best cell is
+on par with tuned XGBoost. The reference methods are tuned over fifteen
+seeds, and the traces point to the next addition to test: a hyperparameter
+search that the agent runs over its own code, which none of our agents
+attempted.
 
 \subsection{Guidance for practitioners}
 
@@ -44,8 +60,10 @@ AutoDS-Tools with its instruction file, which hands the modelling to an
 AutoML library. For a first pass over a new scientific dataset in minutes
 per attempt, use Terminus-2 with the task text alone; it beat the author
 baseline on maize, exceeded the author figure on F-DATA and found the
-published featurisation on OpenPoly. Where search over a fixed backend pays,
-use FEDOT.LLM, best of the three on \texttt{ecom-offers} and on F-DATA. When
+published featurisation on OpenPoly. Use FEDOT.LLM for classification, where
+its default ensemble made it the best of the three on \texttt{ecom-offers}
+and F-DATA, and for tables small enough for its search to run. On large
+regression tables its default random forest ranks near the bottom. When
 a working script is supplied, prescribe nothing. Two rules hold across at
 least two protocols: prescribe only the decision the model would otherwise
 get wrong, and keep advice about training time out of the prompt of any

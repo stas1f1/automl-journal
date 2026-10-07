@@ -1,0 +1,309 @@
+[?2004hroot@a12bd02b3517:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@a12bd02b3517:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@a12bd02b3517:/workspace# ls -la
+[?2004ltotal 4400
+drwxr-xr-x 2 root root    4096 Sep 10 10:02 .
+drwxr-xr-x 1 root root    4096 Sep 10 10:07 ..
+-rw-r--r-- 1 root root  410506 Sep 10 10:02 test.csv
+-rw-r--r-- 1 root root 4079967 Sep 10 10:02 train.csv
+[?2004hroot@a12bd02b3517:/workspace# head -n 5 train.csv
+[?2004lIndex,Pedigree,F,M,ExperimentCode,Year,DatePlanted,DateHarvested,DaysToPollen,DaysToSilk,Height,EarHeight,StandCount,RootLodging,StalkLodging,GrainYield
+4,2369/LH123HT,2369,LH123HT,GAH1,2019,3/28/2019,8/15/2019,61.0,63.0,225.0,110.0,71.0,0.0,7.0,151.1659824
+5,2369/LH123HT,2369,LH123HT,GAH1,2019,3/28/2019,8/14/2019,63.0,65.0,200.0,100.0,66.0,0.0,0.0,67.77009673
+6,2369/LH123HT,2369,LH123HT,GAH2,2019,4/12/2019,9/5/2019,60.0,61.0,234.0,115.0,62.0,,,215.2872913
+8,2369/LH123HT,2369,LH123HT,GAH2,2019,4/12/2019,9/5/2019,65.0,65.0,241.0,119.0,65.0,,1.0,205.5182341
+[?2004hroot@a12bd02b3517:/workspace# head -n 5 test.csv
+[?2004lIndex,Pedigree,F,M,ExperimentCode,Year,DatePlanted,DateHarvested,DaysToPollen,DaysToSilk,Height,EarHeight,StandCount,RootLodging,StalkLodging
+11,2369/LH123HT,2369,LH123HT,IAH1,2019,6/6/2019,11/4/2019,,,240.0,112.0,81.0,,3.0
+16,2369/LH123HT,2369,LH123HT,IAH4,2019,6/3/2019,10/17/2019,64.0,65.0,285.0,155.0,75.0,7.0,2.0
+434,2369/LH123HT,2369,LH123HT,GAH1,2017,4/4/2017,9/6/2017,62.0,63.0,190.0,80.0,4.0,,
+435,2369/LH123HT,2369,LH123HT,GAH1,2017,4/4/2017,9/6/2017,60.0,60.0,190.0,80.0,5.0,,
+[?2004hroot@a12bd02b3517:/workspace# wc -l train.csv test.csv
+[?2004l  37274 train.csv
+   4241 test.csv
+  41515 total
+[?2004hroot@a12bd02b3517:/workspace# cat << 'EOF' > solve.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from sklearn.ensemble import HistGradientBoostingRegressor
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import r2_score, mean_squared_error
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # target and index
+[?2004l[?2004h> target_col = 'GrainYield'
+[?2004l[?2004h> index_col = 'Index'
+[?2004l[?2004h> 
+[?2004l[?2004h> # Drop columns that are essentially the same (F and M are components of Pedigree)
+[?2004l[?2004h> # Date columns might be useful but we'll try a baseline without them first or simple conversion
+[?2004l[?2004h> drop_cols = [index_col, target_col, 'DatePlanted', 'DateHarvested']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Prepare features
+[?2004l[?2004h> X = train.drop(columns=[target_col])
+[?2004l[?2004h> y = train[target_col]
+[?2004l[?2004h> X_test = test.copy()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Categorical columns identification
+[?2004l[?2004h> cat_cols = ['Pedigree', 'F', 'M', 'ExperimentCode']
+[?2004l[?2004h> 
+[?2004l[?2004h> # For HistGradientBoostingRegressor, we can use categorical support
+[?2004l[?2004h> # We need to map categories to integers
+[?2004l[?2004h> for col in cat_cols:
+[?2004l[?2004h>     # Combine train and test to ensure consistent encoding
+[?2004l[?2004h>     all_vals = pd.concat([X[col], X_test[col]]).astype(str).unique()
+[?2004l[?2004h>     mapping = {val: i for i, val in enumerate(all_vals)}
+[?2004l[?2004h>     X[col] = X[col].astype(str).map(mapping)
+[?2004l[?2004h>     X_test[col] = X_test[col].astype(str).map(mapping)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Remove index from features
+[?2004l[?2004h> X_features = X.drop(columns=[index_col])
+[?2004l[?2004h> X_test_features = X_test.drop(columns=[index_col])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split training data for validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X_features, y, test_size=0.2, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize and fit model
+[?2004l[?2004h> # categorical_features is a boolean mask or list of indices
+[?2004l[?2004h> cat_indices = [X_features.columns.get_loc(col) for col in cat_cols]
+[?2004l[?2004h> model = HistGradientBoostingRegressor(categorical_features=cat_indices, random_state=42)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate
+[?2004l[?2004h> preds_val = model.predict(X_val)
+[?2004l[?2004h> r2 = r2_score(y_val, preds_val)
+[?2004l[?2004h> rmse = np.sqrt(mean_squared_error(y_val, preds_val))
+[?2004l[?2004h> print(f"Validation R2: {r2:.4f}")
+[?2004l[?2004h> print(f"Validation RMSE: {rmse:.4f}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> preds_test = model.predict(X_test_features)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create submission
+[?2004l[?2004h> submission = pd.DataFrame({index_col: test[index_col], target_col: preds_test})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print("Submission saved to submission.csv")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a12bd02b3517:/workspace# python3 solve.py
+[?2004lTraceback (most recent call last):
+  File "/workspace/solve.py", line 47, in <module>
+    model.fit(X_train, y_train)
+  File "/usr/local/lib/python3.12/site-packages/sklearn/base.py", line 1403, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py", line 447, in fit
+    X, known_categories = self._preprocess_X(X, reset=True)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py", line 297, in _preprocess_X
+    X = self._preprocessor.fit_transform(X)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/base.py", line 1403, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/compose/_column_transformer.py", line 979, in fit_transform
+    result = self._call_func_on_transformers(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/compose/_column_transformer.py", line 889, in _call_func_on_transformers
+    return Parallel(n_jobs=self.n_jobs)(jobs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/parallel.py", line 91, in __call__
+    return super().__call__(iterable_with_config_and_warning_filters)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/joblib/parallel.py", line 2012, in __call__
+    return output if self.return_generator else list(output)
+                                                ^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/joblib/parallel.py", line 1940, in _get_sequential_output
+    res = func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/parallel.py", line 184, in __call__
+    return self.function(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/pipeline.py", line 1566, in _fit_transform_one
+    res = transformer.fit_transform(X, y, **params.get("fit_transform", {}))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/base.py", line 969, in fit_transform
+    return self.fit(X, **fit_params).transform(X)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/_set_output.py", line 319, in wrapped
+    data_to_wrap = f(self, X, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/preprocessing/_function_transformer.py", line 254, in transform
+    out = self._transform(X, func=self.func, kw_args=self.kw_args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/preprocessing/_function_transformer.py", line 381, in _transform
+    return func(X, **(kw_args if kw_args else {}))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/validation.py", line 1035, in check_array
+    array = _asarray_with_order(array, order=order, dtype=dtype, xp=xp)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/_array_api.py", line 976, in _asarray_with_order
+    array = numpy.asarray(array, order=order, dtype=dtype)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/pandas/core/generic.py", line 2027, in __array__
+    arr = np.asarray(values, dtype=dtype)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: '4/29/2015'
+[?2004hroot@a12bd02b3517:/workspace# cat << 'EOF' > solve.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from sklearn.ensemble import HistGradientBoostingRegressor
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import r2_score, mean_squared_error
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> target_col = 'GrainYield'
+[?2004l[?2004h> index_col = 'Index'
+[?2004l[?2004h> 
+[?2004l[?2004h> # Define columns to drop
+[?2004l[?2004h> # DatePlanted and DateHarvested are strings and should be removed for this baseline
+[?2004l[?2004h> # Index is not a feature
+[?2004l[?2004h> drop_cols = [index_col, 'DatePlanted', 'DateHarvested']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Separate target
+[?2004l[?2004h> y = train[target_col]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Features
+[?2004l[?2004h> X = train.drop(columns=[target_col])
+[?2004l[?2004h> X_test = test.copy()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Categorical columns identification
+[?2004l[?2004h> cat_cols = ['Pedigree', 'F', 'M', 'ExperimentCode']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Mapping categorical columns to integers
+[?2004l[?2004h> for col in cat_cols:
+[?2004l[?2004h>     all_vals = pd.concat([X[col], X_test[col]]).astype(str).unique()
+[?2004l[?2004h>     mapping = {val: i for i, val in enumerate(all_vals)}
+[?2004l[?2004h>     X[col] = X[col].astype(str).map(mapping)
+[?2004l[?2004h>     X_test[col] = X_test[col].astype(str).map(mapping)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Drop the specified columns from features
+[?2004l[?2004h> X_features = X.drop(columns=drop_cols)
+[?2004l[?2004h> X_test_features = X_test.drop(columns=drop_cols)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split training data for validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X_features, y, test_size=0.2, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Identify indices of categorical features for the model
+[?2004l[?2004h> cat_indices = [X_features.columns.get_loc(col) for col in cat_cols]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Initialize and fit model
+[?2004l[?2004h> model = HistGradientBoostingRegressor(categorical_features=cat_indices, random_state=42)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate
+[?2004l[?2004h> preds_val = model.predict(X_val)
+[?2004l[?2004h> r2 = r2_score(y_val, preds_val)
+[?2004l[?2004h> rmse = np.sqrt(mean_squared_error(y_val, preds_val))
+[?2004l[?2004h> print(f"Validation R2: {r2:.4f}")
+[?2004l[?2004h> print(f"Validation RMSE: {rmse:.4f}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> preds_test = model.predict(X_test_features)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create submission
+[?2004l[?2004h> submission = pd.DataFrame({index_col: test[index_col], target_col: preds_test})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print("Submission saved to submission.csv")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a12bd02b3517:/workspace# python3 solve.py
+[?2004lTraceback (most recent call last):
+  File "/workspace/solve.py", line 48, in <module>
+    model.fit(X_train, y_train)
+  File "/usr/local/lib/python3.12/site-packages/sklearn/base.py", line 1403, in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py", line 447, in fit
+    X, known_categories = self._preprocess_X(X, reset=True)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py", line 299, in _preprocess_X
+    known_categories = self._check_categories()
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_hist_gradient_boosting/gradient_boosting.py", line 348, in _check_categories
+    raise ValueError(
+ValueError: Categorical feature 'Pedigree' is expected to have a cardinality <= 255 but actually has a cardinality of 3040.
+[?2004hroot@a12bd02b3517:/workspace# cat << 'EOF' > solve.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from sklearn.ensemble import HistGradientBoostingRegressor
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import r2_score, mean_squared_error
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> target_col = 'GrainYield'
+[?2004l[?2004h> index_col = 'Index'
+[?2004l[?2004h> drop_cols = [index_col, 'DatePlanted', 'DateHarvested']
+[?2004l[?2004h> 
+[?2004l[?2004h> y = train[target_col]
+[?2004l[?2004h> X = train.drop(columns=[target_col])
+[?2004l[?2004h> X_test = test.copy()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split first to avoid leakage during target encoding
+[?2004l[?2004h> X_train_raw, X_val_raw, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> cat_cols = ['Pedigree', 'F', 'M', 'ExperimentCode']
+[?2004l[?2004h> 
+[?2004l[?2004h> # Target Encoding Function
+[?2004l[?2004h> def target_encode(train_df, val_df, test_df, cols, target):
+[?2004l[?2004h>     for col in cols:
+[?2004l[?2004h>         # Calculate mean target for each category using train set
+[?2004l[?2004h>         means = train_df.groupby(col)[target].mean()
+[?2004l[?2004h>         # Map means to train, val, and test sets
+[?2004l[?2004h>         train_df[col] = train_df[col].map(means).fillna(train_df[target].mean())
+[?2004l[?2004h>         val_df[col] = val_df[col].map(means).fillna(train_df[target].mean())
+[?2004l[?2004h>         test_df[col] = test_df[col].map(means).fillna(train_df[target].mean())
+[?2004l[?2004h>     return train_df, val_df, test_df
+[?2004l[?2004h> 
+[?2004l[?2004h> # We need a temporary dataframe for the encoding process that includes the target
+[?2004l[?2004h> train_with_target = X_train_raw.copy()
+[?2004l[?2004h> train_with_target[target_col] = y_train
+[?2004l[?2004h> 
+[?2004l[?2004h> # Perform target encoding
+[?2004l[?2004h> X_train_encoded, X_val_encoded, X_test_encoded = target_encode(
+[?2004l[?2004h>     train_with_target, X_val_raw.copy(), X_test.copy(), cat_cols, target_col
+[?2004l[?2004h> )
+[?2004l[?2004h> 
+[?2004l[?2004h> # Drop the target column and the drop_cols
+[?2004l[?2004h> X_train = X_train_encoded.drop(columns=[target_col] + drop_cols)
+[?2004l[?2004h> X_val = X_val_encoded.drop(columns=drop_cols)
+[?2004l[?2004h> X_test_features = X_test_encoded.drop(columns=drop_cols)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Now all features are numeric (target encoded), so categorical_features=None
+[?2004l[?2004h> model = HistGradientBoostingRegressor(random_state=42)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Validate
+[?2004l[?2004h> preds_val = model.predict(X_val)
+[?2004l[?2004h> r2 = r2_score(y_val, preds_val)
+[?2004l[?2004h> rmse = np.sqrt(mean_squared_error(y_val, preds_val))
+[?2004l[?2004h> print(f"Validation R2: {r2:.4f}")
+[?2004l[?2004h> print(f"Validation RMSE: {rmse:.4f}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict on test set
+[?2004l[?2004h> preds_test = model.predict(X_test_features)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Create submission
+[?2004l[?2004h> submission = pd.DataFrame({index_col: test[index_col], target_col: preds_test})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print("Submission saved to submission.csv")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@a12bd02b3517:/workspace# python3 solve.py
+[?2004lValidation R2: 0.6517
+Validation RMSE: 28.0303
+Submission saved to submission.csv
+[?2004hroot@a12bd02b3517:/workspace# 

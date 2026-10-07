@@ -1,0 +1,201 @@
+[?2004hroot@f2565e103f89:/workspace# asciinema rec --stdin /logs/agent/recording.cast
+[?2004l[0;32masciinema: recording asciicast to /logs/agent/recording.cast[0m
+[0;32masciinema: press <ctrl-d> or type "exit" when you're done[0m
+[?2004hroot@f2565e103f89:/workspace# clear
+[?2004l[H[J[3J[?2004hroot@f2565e103f89:/workspace# ls -la
+[?2004ltotal 4400
+drwxr-xr-x 2 root root    4096 Sep 10 10:02 .
+drwxr-xr-x 1 root root    4096 Sep 10 10:03 ..
+-rw-r--r-- 1 root root  410506 Sep 10 10:02 test.csv
+-rw-r--r-- 1 root root 4079967 Sep 10 10:02 train.csv
+[?2004hroot@f2565e103f89:/workspace# head -n 5 train.csv
+[?2004lIndex,Pedigree,F,M,ExperimentCode,Year,DatePlanted,DateHarvested,DaysToPollen,DaysToSilk,Height,EarHeight,StandCount,RootLodging,StalkLodging,GrainYield
+4,2369/LH123HT,2369,LH123HT,GAH1,2019,3/28/2019,8/15/2019,61.0,63.0,225.0,110.0,71.0,0.0,7.0,151.1659824
+5,2369/LH123HT,2369,LH123HT,GAH1,2019,3/28/2019,8/14/2019,63.0,65.0,200.0,100.0,66.0,0.0,0.0,67.77009673
+6,2369/LH123HT,2369,LH123HT,GAH2,2019,4/12/2019,9/5/2019,60.0,61.0,234.0,115.0,62.0,,,215.2872913
+8,2369/LH123HT,2369,LH123HT,GAH2,2019,4/12/2019,9/5/2019,65.0,65.0,241.0,119.0,65.0,,1.0,205.5182341
+[?2004hroot@f2565e103f89:/workspace# head -n 5 test.csv
+[?2004lIndex,Pedigree,F,M,ExperimentCode,Year,DatePlanted,DateHarvested,DaysToPollen,DaysToSilk,Height,EarHeight,StandCount,RootLodging,StalkLodging
+11,2369/LH123HT,2369,LH123HT,IAH1,2019,6/6/2019,11/4/2019,,,240.0,112.0,81.0,,3.0
+16,2369/LH123HT,2369,LH123HT,IAH4,2019,6/3/2019,10/17/2019,64.0,65.0,285.0,155.0,75.0,7.0,2.0
+434,2369/LH123HT,2369,LH123HT,GAH1,2017,4/4/2017,9/6/2017,62.0,63.0,190.0,80.0,4.0,,
+435,2369/LH123HT,2369,LH123HT,GAH1,2017,4/4/2017,9/6/2017,60.0,60.0,190.0,80.0,5.0,,
+[?2004hroot@f2565e103f89:/workspace# wc -l train.csv test.csv
+[?2004l  37274 train.csv
+   4241 test.csv
+  41515 total
+[?2004hroot@f2565e103f89:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from sklearn.ensemble import RandomForestRegressor
+[?2004l[?2004h> from sklearn.preprocessing import LabelEncoder
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import r2_score, mean_squared_error
+[?2004l[?2004h> from scipy.stats import pearsonr
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Combine for consistent encoding
+[?2004l[?2004h> all_df = pd.concat([train, test], axis=0, sort=False)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Preprocess dates
+[?2004l[?2004h> for col in ['DatePlanted', 'DateHarvested']:
+[?2004l[?2004h>     all_df[col] = pd.to_datetime(all_df[col], errors='coerce')
+[?2004l[?2004h>     all_df[f'{col}_days'] = (all_df[col] - all_df[col].min()).dt.days
+[?2004l[?2004h>     all_df = all_df.drop(columns=[col])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Categorical encoding
+[?2004l[?2004h> cat_cols = ['Pedigree', 'F', 'M', 'ExperimentCode']
+[?2004l[?2004h> for col in cat_cols:
+[?2004l[?2004h>     le = LabelEncoder()
+[?2004l[?2004h>     all_df[col] = le.fit_transform(all_df[col].astype(str))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split back to train and test
+[?2004l[?2004h> train_processed = all_df.iloc[:len(train), :].copy()
+[?2004l[?2004h> test_processed = all_df.iloc[len(train):, :].copy()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Target
+[?2004l[?2004h> y = train_processed['GrainYield']
+[?2004l[?2004h> X = train_processed.drop(columns=['Index', 'GrainYield'])
+[?2004l[?2004h> 
+[?2004l[?2004h> X_test_final = test_processed.drop(columns=['Index'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Handle missing values (Median imputation)
+[?2004l[?2004h> for col in X.columns:
+[?2004l[?2004h>     median_val = X[col].median()
+[?2004l[?2004h>     X[col] = X[col].fillna(median_val)
+[?2004l[?2004h>     X_test_final[col] = X_test_final[col].fillna(median_val)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Internal validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> val_preds = model.predict(X_val)
+[?2004l[?2004h> print(f"Validation R2: {r2_score(y_val, val_preds):.4f}")
+[?2004l[?2004h> print(f"Validation RMSE: {np.sqrt(mean_squared_error(y_val, val_preds)):.4f}")
+[?2004l[?2004h> r, _ = pearsonr(y_val, val_preds)
+[?2004l[?2004h> print(f"Validation Pearson r: {r:.4f}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Final fit on all train data
+[?2004l[?2004h> model.fit(X, y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict test
+[?2004l[?2004h> predictions = model.predict(X_test_final)
+[?2004l[?2004h> 
+[?2004l[?2004h> submission = pd.DataFrame({'Index': test['Index'], 'GrainYield': predictions})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print("Submission file created successfully.")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@f2565e103f89:/workspace# python3 solution.py
+[?2004lValidation R2: 0.6903
+Validation RMSE: 26.4309
+Validation Pearson r: 0.8309
+Traceback (most recent call last):
+  File "/workspace/solution.py", line 60, in <module>
+    predictions = model.predict(X_test_final)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_forest.py", line 1065, in predict
+    X = self._validate_X_predict(X)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/ensemble/_forest.py", line 615, in _validate_X_predict
+    X = validate_data(
+        ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/validation.py", line 3013, in validate_data
+    _check_feature_names(_estimator, X, reset=reset)
+  File "/usr/local/lib/python3.12/site-packages/sklearn/utils/validation.py", line 2865, in _check_feature_names
+    raise ValueError(message)
+ValueError: The feature names should match those that were passed during fit.
+Feature names unseen at fit time:
+- GrainYield
+
+[?2004hroot@f2565e103f89:/workspace# cat << 'EOF' > solution.py
+[?2004l[?2004h> import pandas as pd
+[?2004l[?2004h> import numpy as np
+[?2004l[?2004h> from sklearn.ensemble import RandomForestRegressor
+[?2004l[?2004h> from sklearn.preprocessing import LabelEncoder
+[?2004l[?2004h> from sklearn.model_selection import train_test_split
+[?2004l[?2004h> from sklearn.metrics import r2_score, mean_squared_error
+[?2004l[?2004h> from scipy.stats import pearsonr
+[?2004l[?2004h> 
+[?2004l[?2004h> # Load data
+[?2004l[?2004h> train = pd.read_csv('train.csv')
+[?2004l[?2004h> test = pd.read_csv('test.csv')
+[?2004l[?2004h> 
+[?2004l[?2004h> # Combine for consistent encoding
+[?2004l[?2004h> all_df = pd.concat([train, test], axis=0, sort=False)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Preprocess dates
+[?2004l[?2004h> for col in ['DatePlanted', 'DateHarvested']:
+[?2004l[?2004h>     all_df[col] = pd.to_datetime(all_df[col], errors='coerce')
+[?2004l[?2004h>     all_df[f'{col}_days'] = (all_df[col] - all_df[col].min()).dt.days
+[?2004l[?2004h>     all_df = all_df.drop(columns=[col])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Categorical encoding
+[?2004l[?2004h> cat_cols = ['Pedigree', 'F', 'M', 'ExperimentCode']
+[?2004l[?2004h> for col in cat_cols:
+[?2004l[?2004h>     le = LabelEncoder()
+[?2004l[?2004h>     all_df[col] = le.fit_transform(all_df[col].astype(str))
+[?2004l[?2004h> 
+[?2004l[?2004h> # Split back to train and test
+[?2004l[?2004h> train_processed = all_df.iloc[:len(train), :].copy()
+[?2004l[?2004h> test_processed = all_df.iloc[len(train):, :].copy()
+[?2004l[?2004h> 
+[?2004l[?2004h> # Target
+[?2004l[?2004h> y = train_processed['GrainYield']
+[?2004l[?2004h> # Remove Index and Target from training features
+[?2004l[?2004h> X = train_processed.drop(columns=['Index', 'GrainYield'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Remove Index and Target (if it exists) from test features
+[?2004l[?2004h> X_test_final = test_processed.drop(columns=['Index'])
+[?2004l[?2004h> if 'GrainYield' in X_test_final.columns:
+[?2004l[?2004h>     X_test_final = X_test_final.drop(columns=['GrainYield'])
+[?2004l[?2004h> 
+[?2004l[?2004h> # Ensure column order is the same
+[?2004l[?2004h> X_test_final = X_test_final[X.columns]
+[?2004l[?2004h> 
+[?2004l[?2004h> # Handle missing values (Median imputation)
+[?2004l[?2004h> for col in X.columns:
+[?2004l[?2004h>     median_val = X[col].median()
+[?2004l[?2004h>     X[col] = X[col].fillna(median_val)
+[?2004l[?2004h>     X_test_final[col] = X_test_final[col].fillna(median_val)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Internal validation
+[?2004l[?2004h> X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+[?2004l[?2004h> 
+[?2004l[?2004h> model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+[?2004l[?2004h> model.fit(X_train, y_train)
+[?2004l[?2004h> 
+[?2004l[?2004h> val_preds = model.predict(X_val)
+[?2004l[?2004h> print(f"Validation R2: {r2_score(y_val, val_preds):.4f}")
+[?2004l[?2004h> print(f"Validation RMSE: {np.sqrt(mean_squared_error(y_val, val_preds)):.4f}")
+[?2004l[?2004h> r, _ = pearsonr(y_val, val_preds)
+[?2004l[?2004h> print(f"Validation Pearson r: {r:.4f}")
+[?2004l[?2004h> 
+[?2004l[?2004h> # Final fit on all train data
+[?2004l[?2004h> model.fit(X, y)
+[?2004l[?2004h> 
+[?2004l[?2004h> # Predict test
+[?2004l[?2004h> predictions = model.predict(X_test_final)
+[?2004l[?2004h> 
+[?2004l[?2004h> submission = pd.DataFrame({'Index': test['Index'], 'GrainYield': predictions})
+[?2004l[?2004h> submission.to_csv('submission.csv', index=False)
+[?2004l[?2004h> print("Submission file created successfully.")
+[?2004l[?2004h> EOF
+[?2004l[?2004hroot@f2565e103f89:/workspace# python3 solution.py
+[?2004lValidation R2: 0.6903
+Validation RMSE: 26.4309
+Validation Pearson r: 0.8309
+Submission file created successfully.
+[?2004hroot@f2565e103f89:/workspace# head -n 5 submission.csv
+[?2004lIndex,GrainYield
+11,246.77042405400005
+16,261.73327338
+434,67.52742731650004
+435,82.5500789791
+[?2004hroot@f2565e103f89:/workspace# wc -l submission.csv
+[?2004l4241 submission.csv
+[?2004hroot@f2565e103f89:/workspace# 
