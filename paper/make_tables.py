@@ -509,86 +509,53 @@ def table_mlabhead():
 
 
 def table_mlab():
-    """Таблицы mlabhead и ktool слиты в одну: AutoDS-Tools без слоя и со слоем и
-    Terminus-2 без слоя, по строке на задачу. n < 3 даётся надстрочным индексом у
-    среднего; «none» значит, что ни одна попытка не сдала посылку."""
+    """MLAgentBench: три колонки рядом (Terminus-2, AutoDS-Tools без файла и с
+    файлом), жирным лучшее среднее в строке. Выводы (счёт архитектур, эффект
+    файла) даются текстом в §5.2 и §6.4; макросы headWins* и mlabWiped считаются
+    отдельно. identify-contrails у пола метрики, жирного нет."""
     L = []
     A = L.append
+    FLOOR = {"identify-contrails"}
 
-    def cell(c, bold=False):
-        if c is None:
-            return r"\multicolumn{3}{c}{--}"
-        n, mean, lo, hi = c
-        if n == 0:
-            return r"\multicolumn{3}{c}{none}"
-        body = fmt(mean)
-        if bold:
-            body = r"\textbf{" + body + "}"
-        if n < 3:
-            body += f"$^{{{n}}}$"
-        if n > 1 and lo is not None:
-            return f"{body} & {fmt(lo)} & {fmt(hi)}"
-        return f"{body} & -- & --"
-
-    def delta(on, off, hib):
-        if on is None or off is None or on[0] == 0 or off[0] == 0:
-            return None
-        scale = max(abs(on[1]), abs(off[1])) or 1.0
-        return ((on[1] - off[1]) if hib else (off[1] - on[1])) / scale
+    def short(v):
+        if abs(v) >= 1000:
+            return f"{v:,.0f}".replace(",", "\\,")
+        return f"{v:.1f}" if abs(v) >= 10 else f"{v:.3f}"
 
     by_task = {row[0]: row for row in MLAB}
-    A(r"\begin{table*}[t]")
+    A(r"\begin{table}[t]")
     A(r"\centering")
-    A(r"\caption{AutoDS-Tools with and without its instruction file, "
-      r"and Terminus-2, on the eight MLAgentBench tasks that repeat on our hardware: "
-      r"one job, one verifier, three attempts per task. Mean, min and max are over "
-      r"the attempts that submitted; a superscript gives the number of submitting "
-      r"attempts where it is below three, and \emph{none} means no attempt "
-      r"submitted. Bold marks the better of AutoDS-Tools without the file and "
-      r"Terminus-2 where the margin exceeds $5\%$. $\Delta$ is the change in mean "
-      r"score with the file, divided by the larger of the two means, positive "
-      r"where the file helps.}")
+    A(r"\caption{MLAgentBench, eight tasks, three attempts per cell: mean over "
+      r"the attempts that submitted; -- means no attempt submitted. Best mean "
+      r"per task in bold; on \texttt{identify-contrails} every value is near "
+      r"zero.}")
     A(r"\label{tab:mlab}")
     A(r"\footnotesize")
-    A(r"\setlength{\tabcolsep}{3pt}")
-    A(r"\begin{tabular}{llrrrrrrrrrr}")
+    A(r"\setlength{\tabcolsep}{4pt}")
+    A(r"\begin{tabular}{llrrr}")
     A(r"\toprule")
-    A(r" & & \multicolumn{3}{c}{AutoDS-Tools, no file} & "
-      r"\multicolumn{3}{c}{AutoDS-Tools, file on} & "
-      r"\multicolumn{3}{c}{Terminus-2} & \\")
-    A(r"\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}")
-    A(r"Task & Metric & mean & min & max & mean & min & max & mean & min & max & $\Delta$ \\")
+    A(r" & & & \multicolumn{2}{c}{AutoDS-Tools} \\")
+    A(r"\cmidrule(lr){4-5}")
+    A(r"Task & Metric & Terminus-2 & no file & with file \\")
     A(r"\midrule")
-    wins = [0, 0]
     for row in MLAB_HEAD:
         task, metric, hib, a, tm, _pub = row[:6]
-        forced_tie = len(row) > 6
-        better_a = (a[1] > tm[1]) if hib else (a[1] < tm[1])
-        gap = abs(a[1] - tm[1]) / (max(abs(a[1]), abs(tm[1])) or 1.0)
-        tie = gap < 0.05 or forced_tie
-        if not tie:
-            wins[0 if better_a else 1] += 1
         on = by_task[task][3]
-        off = by_task[task][4]
-        d = delta(on, off, hib)
-        dtxt = r"\multicolumn{1}{c}{--}" if d is None else spct(d)
+        cells = [tm, a, on]
+        got = [c[1] for c in cells if c[0] > 0]
+        best = (max(got) if hib else min(got)) if got and task not in FLOOR else None
+        out = []
+        for c in cells:
+            if c[0] == 0:
+                out.append("--")
+            else:
+                t = short(c[1])
+                out.append(r"\textbf{" + t + "}" if c[1] == best else t)
         arrow = r"$\uparrow$" if hib else r"$\downarrow$"
-        A(f"\\texttt{{{task}}} & {metric} {arrow} & "
-          f"{cell(off, bold=better_a and not tie)} & {cell(on)} & "
-          f"{cell(tm, bold=(not better_a) and not tie)} & {dtxt} \\\\")
+        A(f"\\texttt{{{task}}} & {metric} {arrow} & " + " & ".join(out) + r" \\")
     A(r"\bottomrule")
     A(r"\end{tabular}")
-    A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item \texttt{identify-contrails} is counted as a tie between AutoDS-Tools "
-      r"and Terminus-2: both cells sit at the floor of the metric, and its $\Delta$ "
-      r"divides one small number by another and is not read as a result. "
-      f"Without the file AutoDS-Tools takes {wins[0]} of the eight tasks against "
-      f"Terminus-2 and Terminus-2 {wins[1]}. "
-      r"Median trial: $6.1$ minutes for Terminus-2 against $10.9$ for AutoDS-Tools "
-      r"without the file; means $19.1$ against $63.2$. Terminus-2 reached its "
-      r"agent budget once in $24$ trials, AutoDS-Tools $13$ times in $30$.")
-    A(r"\end{tablenotes}")
-    A(r"\end{table*}")
+    A(r"\end{table}")
     return "\n".join(L)
 
 
@@ -926,8 +893,9 @@ def table_kdisc_term():
     A = L.append
     A(r"\begin{table}[t]")
     A(r"\centering")
-    A(r"\caption{The instruction file appended to the Terminus-2 task statement, "
-      r"24 trials per cell on one machine, image and backbone. Lost: trials ending "
+    A(r"\caption{The instruction file appended to the Terminus-2 task statement "
+      r"on the eight TabReD tasks, 24 trials per cell on one machine, image and "
+      r"language model. Lost: trials ending "
       r"with no submission. Steps and minutes are medians per trial.}")
     A(r"\label{tab:kdiscterm}")
     A(r"\footnotesize")

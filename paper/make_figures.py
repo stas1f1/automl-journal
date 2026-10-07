@@ -730,7 +730,7 @@ ABL_ROWS = [
     (None, "discipline part, time advice deleted", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
     ("Container image (Terminus-2)", None, None, None, None, None),
     (None, "libraries pre-installed vs stock", "image", "Terminus-2", "term_enriched", "term_stock"),
-    ("Backbone model", None, None, None, None, None),
+    ("Language model", None, None, None, None, None),
     (None, "Terminus-2: gemma-4-26b-a4b vs 31b", "termSmall", "Terminus-2", "term_small", "term_none_axis"),
     (None, "Terminus-2: glm-4.7 vs gemma-4-31b", "termBig", "Terminus-2", "term_big", "term_none_axis"),
     (None, "AutoDS-Tools: gemma-4-26b-a4b vs 31b", "autodsSmall", "AutoDS-Tools", "autods_small", "autods_both"),
