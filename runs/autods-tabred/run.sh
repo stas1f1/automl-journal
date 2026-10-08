@@ -160,6 +160,8 @@ case "${1:-}" in
   # одна попытка на каждую из восьми задач: для ячейки, где ожидается сплошной
   # отказ, восьми испытаний хватает, а три попытки только умножали бы таймауты
   axis-autods-1) run "autods-tabred-M${MODEL_SLUG:?задайте MODEL_SLUG}" 1 ;;
+  # перезапуск отдельных задач той же ячейки: ./run.sh axis-autods-fix -i cooking-time ...
+  axis-autods-fix) shift; run "autods-tabred-M${MODEL_SLUG:?задайте MODEL_SLUG}-fix" 1 "$@" ;;
   axis-terminus-smoke) run_terminus "terminus-tabred-M${MODEL_SLUG:?задайте MODEL_SLUG}-smoke" 1 -i cooking-time ;;
   # matched-provisioning arm: Terminus-2 on the enriched image.  Only
   # meaningful while the images are patched; check before launching.

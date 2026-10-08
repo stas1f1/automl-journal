@@ -874,7 +874,7 @@ KDISC_TERM = [
     ("neither",                        24,  2, 8,  6,  2.5, 0.0029, None),
     ("discipline",                    24, 13, 7, 18, 14.1, 0.0303, -0.05),
     ("discipline, minus time",        24,  0, 8,  7,  3.0, 0.0044, -0.69),
-    ("library",                       22, 19, 3, 14, 10.2, 0.0107, +1.21),
+    ("library",                       24, 21, 3, 14, 10.3, 0.0131, +1.21),
     ("both",                           24, 11, 6, 20, 18.4, 0.1172, +1.13),
 ]
 # Fisher's exact, two-sided, on the loss counts
@@ -882,8 +882,8 @@ KDISC_TERM_P = {
     "disc_vs_neither": "0.0013",
     "trim_vs_disc": "2.6\\times10^{-5}",
     "trim_vs_neither": "0.49",
-    "tool_vs_neither": "9.6\\times10^{-8}",
-    "tool_vs_both": "0.0055",
+    "tool_vs_neither": "3.7\\times10^{-8}",
+    "tool_vs_both": "0.0050",
     "both_vs_neither": "0.0078",
 }
 
@@ -913,8 +913,7 @@ def table_kdisc_term():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\par\smallskip")
-    A(r"\begin{minipage}{0.97\linewidth}\scriptsize The library cell "
-      r"lost two trials to a network fault and reports twenty-two. No cell had a "
+    A(r"\begin{minipage}{0.97\linewidth}\scriptsize No cell had a "
       r"timeout. Tasks: how many of eight returned a metric at least once. "
       r"rel.\ \%: mean relative change against the cell without the file over the tasks "
       r"that cell returns; the last two rows average over a surviving minority. "
@@ -940,7 +939,7 @@ AXIS = {
     "AutoDS-Tools": [
         ("gemma-4-26b-a4b", 24, 6,  7, 123374, 0.3990, -0.14, -0.09),
         ("gemma-4-31b",     24, 1,  4,  61606, 0.1767,  None,  None),
-        ("glm-4.7",          8, 1,  4, 251010, 1.1005, +0.67, -0.02),
+        ("glm-4.7",         24, 7, 12, 250501, 3.0355, +1.13, -0.00),
     ],
 }
 
@@ -976,9 +975,8 @@ def table_axis():
     A(r"\par\smallskip")
     A(r"\begin{minipage}{0.95\linewidth}\footnotesize Lost: no metric returned. "
       r"Cut: stopped at the time limit, which does not always lose the trial; "
-      r"not recorded per trial for the open harness, which finishes far inside it. "
-      r"The upper AutoDS-Tools cell is eight trials, one per task "
-      r"(Section~\ref{sec:modelaxis}).\end{minipage}")
+      r"not recorded per trial for the open harness, which finishes far inside it."
+      r"\end{minipage}")
     A(r"\end{table*}")
     return "\n".join(L)
 
@@ -1441,13 +1439,17 @@ def fig_walltime():
 # names the Harbor job behind every row.  None: no attempt returned a metric.
 # ----------------------------------------------------------------------
 # Backbone axis, 29-30.08.2026 on nss-calc2 (jobs terminus-tabred-M*, autods-tabred-M*).
+# AUTODS_GLM: three attempts per task since 07.10.2026 (August attempt plus two
+# more, same command); assembled by runs/autods-tabred/fill/glm_cell.py.
 TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547614, 0.162790, 1.617088]
 TERM_31B_AXIS = [0.959566, 0.563585, 0.857289, 0.250328, 0.483718, 0.547847, 0.162705, 1.523593]
 TERM_GLM = [0.954624, 0.604341, 0.852459, 0.365072, 0.483784, 0.552850, 0.163378, 1.545516]
 AUTODS_26B = [0.959968, 0.579983, 0.859903, 0.252292, 0.482312, 0.547438, 0.162112, 1.479850]
-AUTODS_GLM = [0.961118, 0.579410, 0.853918, 0.231021, 0.481861, 0.547520, None, 1.511525]
+AUTODS_GLM = [0.961074, 0.588994, 0.853918, 0.232270, 0.480954, 0.547785, None, 1.483097]
 # The instruction file appended to the Terminus-2 task file, 30.08.2026
 # (jobs terminus-kdisc-*, terminus-kdisc-notime-*, terminus-ktool2-*, terminus-kboth-*).
+# terminus-ktool2 lost two trials to APIError; they were rerun on 07.10.2026
+# (terminus-ktool2-fill-20261007-162612), and neither submitted.
 TERM_KDISC = [0.959449, 0.564631, 0.856682, 0.251640, 0.483327, 0.547815, 0.162731, None]
 TERM_KDISC_TRIM = [0.959766, 0.559876, 0.815040, 0.250328, 0.483645, 0.547754, 0.162748, 1.523479]
 TERM_KTOOL = [None, 0.579973, None, None, 0.482665, None, 0.161900, None]
@@ -1458,8 +1460,8 @@ LOST = {
     "autods_both": (1, 24), "autods_none": (0, 24), "autods_tool": (0, 24), "autods_disc": (0, 24),
     "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (0, 24),
     "term_none_axis": (2, 24), "term_kdisc": (13, 24), "term_kdisc_trim": (0, 24),
-    "term_ktool": (19, 22), "term_kboth": (11, 24),
-    "term_small": (6, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (1, 8),
+    "term_ktool": (21, 24), "term_kboth": (11, 24),
+    "term_small": (6, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
     # MLAgentBench, eight repeatable tasks x three attempts
     "mlab_autods_none": (2, 24), "mlab_autods_file": (9, 24), "mlab_term": (6, 24),
 }
@@ -1893,6 +1895,8 @@ def table_numbers():
 
 
 
+IN_PAPER = {"numbers", "leaderboard", "mlab", "cases", "cost", "grid", "kdiscterm"}
+
 if __name__ == "__main__":
     for name, fn in [("numbers", table_numbers),
                      ("leaderboard", table_leaderboard),
@@ -1912,7 +1916,9 @@ if __name__ == "__main__":
                      ("fig_position", fig_position),
                      ("fig_signflip", fig_signflip),
                      ("fig_walltime", fig_walltime)]:
-        p = OUT / f"{name}.tex"
+        # tables the paper does not \input go to tables/archive/
+        p = (OUT if name in IN_PAPER else OUT / "archive") / f"{name}.tex"
+        p.parent.mkdir(exist_ok=True)
         p.write_text(fn() + "\n", encoding="utf-8")
         print("wrote", p.relative_to(Path(__file__).parent))
 

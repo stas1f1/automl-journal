@@ -79,8 +79,13 @@ def grid_cell(col):
     return nmean([mt.GRID[t][2 + col] for t in mt.TASKS])
 
 
+# figures the paper includes; the others go to figures/archive/
+IN_PAPER = {"fig_leaderboard", "fig_ablations"}
+
+
 def save(fig, name):
-    p = OUT / f"{name}.pdf"
+    p = (OUT if name in IN_PAPER else OUT / "archive") / f"{name}.pdf"
+    p.parent.mkdir(exist_ok=True)
     fig.savefig(p)
     plt.close(fig)
     print("wrote", p.relative_to(Path(__file__).parent))
