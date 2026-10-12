@@ -226,8 +226,8 @@ def table_leaderboard():
     A(r"\centering")
     A(r"\caption{The three harnesses in the TabReD leaderboard: "
       r"official temporal splits, metrics in raw units. Published rows are "
-      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}; agent rows are "
-      r"means over three attempts on \texttt{gemma-4-31b-it}. "
+      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}. Agent rows are "
+      r"means over three attempts on gemma-4-31b-it.  "
       r"Best per column in bold.}")
     A(r"\label{tab:leaderboard}")
     A(r"\small")
@@ -404,7 +404,7 @@ CASES = {
     ("openpoly-tg", "Terminus-2", "prescribed"): ([None, None, None], [1.7, 3.0, 2.6]),
     # FEDOT.LLM, текст без раздела о библиотеке, бэкенд FEDOT, time_limit 2400 с
     # (result_files/cases_fedot_2026-09-10.json); на OpenPoly не применим.
-    ("maize-yield", "FEDOT.LLM", "plain"):      ([0.602824, 0.579247, 0.578079], [52.8, 52.1, 57.0]),
+    ("maize-yield", "FEDOT.LLM", "plain"):      ([0.602773, 0.579230, 0.578138], [52.8, 52.1, 57.0]),
     ("fdata-exit",  "FEDOT.LLM", "plain"):      ([0.951787, 0.951787, 0.951787], [45.7, 42.7, 45.4]),
 }
 # Вторичные метрики тех же трайлов для прозы (только попытки с файлом).
@@ -526,8 +526,8 @@ def table_mlab():
     A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{MLAgentBench, eight tasks, three attempts per cell: mean over "
-      r"the attempts that submitted; -- means no attempt submitted. Best mean "
-      r"per task in bold; on \texttt{identify-contrails} every value is near "
+      r"the attempts that submitted. A dash means no attempt submitted. Best mean "
+      r"per task in bold. On \texttt{identify-contrails} every value is near "
       r"zero.}")
     A(r"\label{tab:mlab}")
     A(r"\footnotesize")
@@ -577,10 +577,9 @@ def table_cases():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{Three scientific case studies, one row per system and task text: "
-      r"the published text with its library section, or the same text without it "
-      r"(plain). $n$ counts attempts that left a submission; mean, min and max are "
-      r"over those; minutes are the median agent time per attempt. Bold: the best "
+    A(r"\caption{Three scientific case studies, one row per system and task text. "
+      r"$n$ counts attempts that left a submission, and mean, min and max are "
+      r"over those. Minutes are the median agent time per attempt. Bold: the best "
       r"system mean per case.}")
     A(r"\label{tab:cases}")
     A(r"\small")
@@ -616,10 +615,7 @@ def table_cases():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item AutoDS-Tools rows run the published text with the system's own instruction file off. "
-      r"FEDOT.LLM cannot act on the library section and has no molecular featurisation, "
-      r"so it has one row and was not run on OpenPoly. "
-      r"F-DATA: majority class scores " + f"{CASE_FLOORS['fdata-exit']:.3f}" + r". "
+    A(r"\item FEDOT.LLM has no molecular featurisation and was not run on OpenPoly. "
       r"OpenPoly: the author figure is on the full dataset, ours on a subset with an "
       r"89-row test split, so that row is indicative only.")
     A(r"\end{tablenotes}")
@@ -695,14 +691,23 @@ TELEMETRY = [
     ("Terminus-2", "MLAgentBench", "1a42d1fe", 6, 1, 0.089077296, 840565, 27431, 4202.6),
     ("AutoDS-Tools ($K$ on)", "both", "3113aba7", 18, 1, 0.313829, 2525266, 180306, 140526.0),
     ("AutoDS-Tools ($K$ off)", "both", "56768b37", 18, 1, 0.219441, 1709777, 142540, 108252.5),
-    # This work: the re-run on the common adapter, 8 tasks x 3 attempts.
-    ("AutoDS-Tools (this work)", "TabReD", "server", 24, 4, 0.176723, 1478567, 128387, 15972.4),
+    # This work: the re-run on the common adapter, 8 tasks x 3 attempts.  Last
+    # field since 12.10.2026: the SUM of the trials' own durations (result.json,
+    # finished_at minus started_at), concurrency 1, as for the rows below.  The
+    # earlier value was the job's end-to-end time at concurrency 4 (15972.4 s),
+    # which gave 44.4 min per trial against 41.2 from the trials themselves.
+    ("AutoDS-Tools (this work)", "TabReD", "server", 24, 1, 0.176723, 1478567, 128387, 59272.9),
     # FEDOT.LLM, 8 tasks x 3 attempts, 22-23.09.2026 (schema_final.json): token
     # counts from the trial logs; the cost is those tokens at the list price of
     # gemma-4-31b-it ($0.09 / $0.34 per million), since fedotllm calls the model
     # from inside the container and Harbor records no cost for it.  Last field:
     # the SUM of agent times over the 24 trials, concurrency 1.
-    ("FEDOT.LLM", "TabReD", "schema", 24, 1, 0.007058, 64322, 3731, 47610.0),
+    # Since 12.10.2026 the row covers all 28 trials of the cell: the 24 scored
+    # ones (64 322 / 3 731 tokens, 47 610 s) and the four that reached the
+    # 3600 s limit without a submission (delivery-eta bBNNjor, sberbank-housing
+    # DHnjWNc, fbt9jqR, Bjj9qA3), which are counted like the AutoDS-Tools trial
+    # cut at the limit.
+    ("FEDOT.LLM", "TabReD", "schema", 28, 1, 0.008237, 75055, 4360, 62010.9),
     # Повторы на MLAgentBench, сентябрь 2026. У этих строк последнее поле — СУММА
     # времён отдельных испытаний, а не сквозное время задания, поэтому
     # предпоследнее поле равно 1: та же формула wall*conc/n тогда даёт среднее
@@ -785,10 +790,10 @@ def table_grid():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{The two parts of the instruction file crossed on AutoDS-Tools "
-      r"over TabReD, 24 trials per cell on one image and one machine. The cell "
-      r"without the file is given in the task's own units, the other three as "
-      r"relative change against it, positive is better.}")
+    A(r"\caption{The two parts of the instruction file switched on and off in "
+      r"AutoDS-Tools on TabReD, 24 trials per cell. The cell without the file is "
+      r"in the task's own units, the other three are relative changes against "
+      r"it, positive is better.}")
     A(r"\label{tab:grid}")
     A(r"\small")
     A(r"\setlength{\tabcolsep}{5pt}")
@@ -874,7 +879,7 @@ KDISC_TERM = [
     ("neither",                        24,  2, 8,  6,  2.5, 0.0029, None),
     ("discipline",                    24, 13, 7, 18, 14.1, 0.0303, -0.05),
     ("discipline, minus time",        24,  0, 8,  7,  3.0, 0.0044, -0.69),
-    ("library",                       24, 21, 3, 14, 10.3, 0.0131, +1.21),
+    ("library",                       24, 21, 3, 14.5, 10.3, 0.0131, +1.21),
     ("both",                           24, 11, 6, 20, 18.4, 0.1172, +1.13),
 ]
 # Fisher's exact, two-sided, on the loss counts
@@ -894,9 +899,11 @@ def table_kdisc_term():
     A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{The instruction file appended to the Terminus-2 task statement "
-      r"on the eight TabReD tasks, 24 trials per cell on one machine, image and "
-      r"language model. Lost: trials ending "
-      r"with no submission. Steps and minutes are medians per trial.}")
+      r"on TabReD, 24 trials per cell. Lost: trials that ended with no "
+      r"submission. Tasks: tasks with at least one scored trial. Steps and "
+      r"minutes are medians per trial. rel.\ \%: mean relative change against "
+      r"the cell without the file over the tasks that the cell scored. Trimmed: "
+      r"the discipline instruction without its two paragraphs on training time.}")
     A(r"\label{tab:kdiscterm}")
     A(r"\footnotesize")
     A(r"\setlength{\tabcolsep}{3pt}")
@@ -912,27 +919,13 @@ def table_kdisc_term():
           f"{cost:.4f} & {relcell} \\\\")
     A(r"\bottomrule")
     A(r"\end{tabular}")
-    A(r"\par\smallskip")
-    A(r"\begin{minipage}{0.97\linewidth}\scriptsize No cell had a "
-      r"timeout. Tasks: how many of eight returned a metric at least once. "
-      r"rel.\ \%: mean relative change against the cell without the file over the tasks "
-      r"that cell returns; the last two rows average over a surviving minority. "
-      r"Fisher's exact test on lost trials, two-sided: "
-      rf"discipline against none $p={KDISC_TERM_P['disc_vs_neither']}$; "
-      rf"trimmed against discipline $p={KDISC_TERM_P['trim_vs_disc']}$; "
-      rf"trimmed against none $p={KDISC_TERM_P['trim_vs_neither']}$; "
-      rf"library against none $p={KDISC_TERM_P['tool_vs_neither']}$; library against both "
-      rf"$p={KDISC_TERM_P['tool_vs_both']}$; a Holm correction changes no "
-      r"conclusion. Trimmed: the discipline instruction with its two paragraphs "
-      r"about training time removed."
-      r"\end{minipage}")
     A(r"\end{table}")
     return "\n".join(L)
 
 AXIS = {
     "Terminus-2": [
         # model, trials, losses, timeouts_or_None, in_tok_per_trial, cost, mean_delta, median_delta
-        ("gemma-4-26b-a4b", 24, 6, None, 720720, 0.9263, -0.93, -0.06),
+        ("gemma-4-26b-a4b", 24, 5, None, 722635, 0.9292, -0.93, -0.06),
         ("gemma-4-31b",     24, 2, None,  37317, 0.0690,  None,  None),
         ("glm-4.7",         24, 0, None, 110602, 0.7615, -5.31, -0.54),
     ],
@@ -1036,11 +1029,8 @@ def table_cost():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item Distributions are right-tailed: the AutoDS-Tools branch without the file on "
-      r"MLAgentBench has a median of $10.9$ minutes against a mean of $63.2$, and "
-      r"one Terminus-2 trial (\texttt{feedback}, $571$ steps, \$8.71) is $84\%$ of "
-      r"its job, whose median trial cost \$0.033. FEDOT.LLM calls the model from "
-      r"inside its container, so its cost is its token count at list price.")
+    A(r"\item FEDOT.LLM calls the model from inside its container, so its cost "
+      r"is its token count at list price.")
     A(r"\end{tablenotes}")
     A(r"\end{table}")
     return "\n".join(L)
@@ -1441,7 +1431,9 @@ def fig_walltime():
 # Backbone axis, 29-30.08.2026 on nss-calc2 (jobs terminus-tabred-M*, autods-tabred-M*).
 # AUTODS_GLM: three attempts per task since 07.10.2026 (August attempt plus two
 # more, same command); assembled by runs/autods-tabred/fill/glm_cell.py.
-TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547614, 0.162790, 1.617088]
+# TERM_26B: the delivery-eta trial lost to APIError in August was rerun on
+# 12.10.2026 (terminus-tabred-Msmall-fill-20261012-143233) and scored 0.547829.
+TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547686, 0.162790, 1.617088]
 TERM_31B_AXIS = [0.959566, 0.563585, 0.857289, 0.250328, 0.483718, 0.547847, 0.162705, 1.523593]
 TERM_GLM = [0.954624, 0.604341, 0.852459, 0.365072, 0.483784, 0.552850, 0.163378, 1.545516]
 AUTODS_26B = [0.959968, 0.579983, 0.859903, 0.252292, 0.482312, 0.547438, 0.162112, 1.479850]
@@ -1458,10 +1450,12 @@ TERM_KBOTH = [None, 0.579979, 0.863972, 0.251457, None, 0.547438, 0.161918, 1.47
 # Trials that ended without a submission, per cell (of the trials run).
 LOST = {
     "autods_both": (1, 24), "autods_none": (0, 24), "autods_tool": (0, 24), "autods_disc": (0, 24),
-    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (0, 24),
+    # fedot: four of 28 trials reached the 3600 s limit without a submission;
+    # the two tasks were repeated until each had three scored attempts.
+    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (4, 28),
     "term_none_axis": (2, 24), "term_kdisc": (13, 24), "term_kdisc_trim": (0, 24),
     "term_ktool": (21, 24), "term_kboth": (11, 24),
-    "term_small": (6, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
+    "term_small": (5, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
     # MLAgentBench, eight repeatable tasks x three attempts
     "mlab_autods_none": (2, 24), "mlab_autods_file": (9, 24), "mlab_term": (6, 24),
 }

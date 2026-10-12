@@ -219,7 +219,7 @@ def fig_cases():
         panel_results(bottom[k], task, first=(k == 0))
     fig.text(0.075, 0.955, "a", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
     fig.text(0.02, 0.305, "b", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
-    fig.text(0.04, 0.305, "Every attempt against the author baseline (dashed); cross: no submission",
+    fig.text(0.04, 0.305, "Every attempt against the author baseline (dashed). Cross: no submission",
              ha="left", va="bottom", fontsize=6.5)
     save(fig, "fig_cases")
 
