@@ -226,7 +226,7 @@ def table_leaderboard():
     A(r"\centering")
     A(r"\caption{The three harnesses in the TabReD leaderboard: "
       r"official temporal splits, metrics in raw units. Published rows are "
-      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}; agent rows are "
+      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}. Agent rows are "
       r"means over three attempts on \texttt{gemma-4-31b-it}. "
       r"Best per column in bold.}")
     A(r"\label{tab:leaderboard}")
@@ -526,8 +526,8 @@ def table_mlab():
     A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{MLAgentBench, eight tasks, three attempts per cell: mean over "
-      r"the attempts that submitted; -- means no attempt submitted. Best mean "
-      r"per task in bold; on \texttt{identify-contrails} every value is near "
+      r"the attempts that submitted. A dash means no attempt submitted. Best mean "
+      r"per task in bold. On \texttt{identify-contrails} every value is near "
       r"zero.}")
     A(r"\label{tab:mlab}")
     A(r"\footnotesize")
@@ -579,8 +579,8 @@ def table_cases():
     A(r"\centering")
     A(r"\caption{Three scientific case studies, one row per system and task text: "
       r"the published text with its library section, or the same text without it "
-      r"(plain). $n$ counts attempts that left a submission; mean, min and max are "
-      r"over those; minutes are the median agent time per attempt. Bold: the best "
+      r"(plain). $n$ counts attempts that left a submission. Mean, min and max are "
+      r"over those. Minutes are the median agent time per attempt. Bold: the best "
       r"system mean per case.}")
     A(r"\label{tab:cases}")
     A(r"\small")
@@ -925,13 +925,13 @@ def table_kdisc_term():
     A(r"\begin{minipage}{0.97\linewidth}\scriptsize No cell had a "
       r"timeout. Tasks: how many of eight returned a metric at least once. "
       r"rel.\ \%: mean relative change against the cell without the file over the tasks "
-      r"that cell returns; the last two rows average over a surviving minority. "
+      r"that cell returns. The last two rows average over a surviving minority. "
       r"Fisher's exact test on lost trials, two-sided: "
-      rf"discipline against none $p={KDISC_TERM_P['disc_vs_neither']}$; "
-      rf"trimmed against discipline $p={KDISC_TERM_P['trim_vs_disc']}$; "
-      rf"trimmed against none $p={KDISC_TERM_P['trim_vs_neither']}$; "
-      rf"library against none $p={KDISC_TERM_P['tool_vs_neither']}$; library against both "
-      rf"$p={KDISC_TERM_P['tool_vs_both']}$; a Holm correction changes no "
+      rf"discipline against none $p={KDISC_TERM_P['disc_vs_neither']}$, "
+      rf"trimmed against discipline $p={KDISC_TERM_P['trim_vs_disc']}$, "
+      rf"trimmed against none $p={KDISC_TERM_P['trim_vs_neither']}$, "
+      rf"library against none $p={KDISC_TERM_P['tool_vs_neither']}$ and library against both "
+      rf"$p={KDISC_TERM_P['tool_vs_both']}$. A Holm correction changes no "
       r"conclusion. Trimmed: the discipline instruction with its two paragraphs "
       r"about training time removed."
       r"\end{minipage}")

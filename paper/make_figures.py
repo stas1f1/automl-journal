@@ -80,7 +80,7 @@ def grid_cell(col):
 
 
 # figures the paper includes; the others go to figures/archive/
-IN_PAPER = {"fig_leaderboard", "fig_ablations"}
+IN_PAPER = {"fig_leaderboard", "fig_ablations", "fig_cases"}
 
 
 def save(fig, name):
