@@ -577,9 +577,8 @@ def table_cases():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{Three scientific case studies, one row per system and task text: "
-      r"the published text with its library section, or the same text without it "
-      r"(plain). $n$ counts attempts that left a submission. Mean, min and max are "
+    A(r"\caption{Three scientific case studies, one row per system and task text. "
+      r"$n$ counts attempts that left a submission, and mean, min and max are "
       r"over those. Minutes are the median agent time per attempt. Bold: the best "
       r"system mean per case.}")
     A(r"\label{tab:cases}")
@@ -616,10 +615,7 @@ def table_cases():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item AutoDS-Tools rows run the published text with the system's own instruction file off. "
-      r"FEDOT.LLM cannot act on the library section and has no molecular featurisation, "
-      r"so it has one row and was not run on OpenPoly. "
-      r"F-DATA: majority class scores " + f"{CASE_FLOORS['fdata-exit']:.3f}" + r". "
+    A(r"\item FEDOT.LLM has no molecular featurisation and was not run on OpenPoly. "
       r"OpenPoly: the author figure is on the full dataset, ours on a subset with an "
       r"89-row test split, so that row is indicative only.")
     A(r"\end{tablenotes}")
@@ -794,10 +790,10 @@ def table_grid():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{The two parts of the instruction file crossed on AutoDS-Tools "
-      r"over TabReD, 24 trials per cell on one image and one machine. The cell "
-      r"without the file is given in the task's own units, the other three as "
-      r"relative change against it, positive is better.}")
+    A(r"\caption{The two parts of the instruction file switched on and off in "
+      r"AutoDS-Tools on TabReD, 24 trials per cell. The cell without the file is "
+      r"in the task's own units, the other three are relative changes against "
+      r"it, positive is better.}")
     A(r"\label{tab:grid}")
     A(r"\small")
     A(r"\setlength{\tabcolsep}{5pt}")
@@ -903,9 +899,11 @@ def table_kdisc_term():
     A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{The instruction file appended to the Terminus-2 task statement "
-      r"on the eight TabReD tasks, 24 trials per cell on one machine, image and "
-      r"language model. Lost: trials ending "
-      r"with no submission. Steps and minutes are medians per trial.}")
+      r"on TabReD, 24 trials per cell. Lost: trials that ended with no "
+      r"submission. Tasks: tasks with at least one scored trial. Steps and "
+      r"minutes are medians per trial. rel.\ \%: mean relative change against "
+      r"the cell without the file over the tasks that the cell scored. Trimmed: "
+      r"the discipline instruction without its two paragraphs on training time.}")
     A(r"\label{tab:kdiscterm}")
     A(r"\footnotesize")
     A(r"\setlength{\tabcolsep}{3pt}")
@@ -921,20 +919,6 @@ def table_kdisc_term():
           f"{cost:.4f} & {relcell} \\\\")
     A(r"\bottomrule")
     A(r"\end{tabular}")
-    A(r"\par\smallskip")
-    A(r"\begin{minipage}{0.97\linewidth}\scriptsize No cell had a "
-      r"timeout. Tasks: how many of eight returned a metric at least once. "
-      r"rel.\ \%: mean relative change against the cell without the file over the tasks "
-      r"that cell returns. The last two rows average over a surviving minority. "
-      r"Fisher's exact test on lost trials, two-sided: "
-      rf"discipline against none $p={KDISC_TERM_P['disc_vs_neither']}$, "
-      rf"trimmed against discipline $p={KDISC_TERM_P['trim_vs_disc']}$, "
-      rf"trimmed against none $p={KDISC_TERM_P['trim_vs_neither']}$, "
-      rf"library against none $p={KDISC_TERM_P['tool_vs_neither']}$ and library against both "
-      rf"$p={KDISC_TERM_P['tool_vs_both']}$. A Holm correction changes no "
-      r"conclusion. Trimmed: the discipline instruction with its two paragraphs "
-      r"about training time removed."
-      r"\end{minipage}")
     A(r"\end{table}")
     return "\n".join(L)
 
@@ -1045,11 +1029,8 @@ def table_cost():
     A(r"\bottomrule")
     A(r"\end{tabular}")
     A(r"\begin{tablenotes}\footnotesize")
-    A(r"\item Distributions are right-tailed: the AutoDS-Tools branch without the file on "
-      r"MLAgentBench has a median of $10.9$ minutes against a mean of $63.2$, and "
-      r"one Terminus-2 trial (\texttt{feedback}, $571$ steps, \$8.71) is $84\%$ of "
-      r"its job, whose median trial cost \$0.033. FEDOT.LLM calls the model from "
-      r"inside its container, so its cost is its token count at list price.")
+    A(r"\item FEDOT.LLM calls the model from inside its container, so its cost "
+      r"is its token count at list price.")
     A(r"\end{tablenotes}")
     A(r"\end{table}")
     return "\n".join(L)
