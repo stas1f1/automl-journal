@@ -227,7 +227,7 @@ def table_leaderboard():
     A(r"\caption{The three harnesses in the TabReD leaderboard: "
       r"official temporal splits, metrics in raw units. Published rows are "
       r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}. Agent rows are "
-      r"means over three attempts on \texttt{gemma-4-31b-it}. "
+      r"means over three attempts on gemma-4-31b-it.  "
       r"Best per column in bold.}")
     A(r"\label{tab:leaderboard}")
     A(r"\small")
