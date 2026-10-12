@@ -404,7 +404,7 @@ CASES = {
     ("openpoly-tg", "Terminus-2", "prescribed"): ([None, None, None], [1.7, 3.0, 2.6]),
     # FEDOT.LLM, текст без раздела о библиотеке, бэкенд FEDOT, time_limit 2400 с
     # (result_files/cases_fedot_2026-09-10.json); на OpenPoly не применим.
-    ("maize-yield", "FEDOT.LLM", "plain"):      ([0.602824, 0.579247, 0.578079], [52.8, 52.1, 57.0]),
+    ("maize-yield", "FEDOT.LLM", "plain"):      ([0.602773, 0.579230, 0.578138], [52.8, 52.1, 57.0]),
     ("fdata-exit",  "FEDOT.LLM", "plain"):      ([0.951787, 0.951787, 0.951787], [45.7, 42.7, 45.4]),
 }
 # Вторичные метрики тех же трайлов для прозы (только попытки с файлом).
@@ -695,14 +695,23 @@ TELEMETRY = [
     ("Terminus-2", "MLAgentBench", "1a42d1fe", 6, 1, 0.089077296, 840565, 27431, 4202.6),
     ("AutoDS-Tools ($K$ on)", "both", "3113aba7", 18, 1, 0.313829, 2525266, 180306, 140526.0),
     ("AutoDS-Tools ($K$ off)", "both", "56768b37", 18, 1, 0.219441, 1709777, 142540, 108252.5),
-    # This work: the re-run on the common adapter, 8 tasks x 3 attempts.
-    ("AutoDS-Tools (this work)", "TabReD", "server", 24, 4, 0.176723, 1478567, 128387, 15972.4),
+    # This work: the re-run on the common adapter, 8 tasks x 3 attempts.  Last
+    # field since 12.10.2026: the SUM of the trials' own durations (result.json,
+    # finished_at minus started_at), concurrency 1, as for the rows below.  The
+    # earlier value was the job's end-to-end time at concurrency 4 (15972.4 s),
+    # which gave 44.4 min per trial against 41.2 from the trials themselves.
+    ("AutoDS-Tools (this work)", "TabReD", "server", 24, 1, 0.176723, 1478567, 128387, 59272.9),
     # FEDOT.LLM, 8 tasks x 3 attempts, 22-23.09.2026 (schema_final.json): token
     # counts from the trial logs; the cost is those tokens at the list price of
     # gemma-4-31b-it ($0.09 / $0.34 per million), since fedotllm calls the model
     # from inside the container and Harbor records no cost for it.  Last field:
     # the SUM of agent times over the 24 trials, concurrency 1.
-    ("FEDOT.LLM", "TabReD", "schema", 24, 1, 0.007058, 64322, 3731, 47610.0),
+    # Since 12.10.2026 the row covers all 28 trials of the cell: the 24 scored
+    # ones (64 322 / 3 731 tokens, 47 610 s) and the four that reached the
+    # 3600 s limit without a submission (delivery-eta bBNNjor, sberbank-housing
+    # DHnjWNc, fbt9jqR, Bjj9qA3), which are counted like the AutoDS-Tools trial
+    # cut at the limit.
+    ("FEDOT.LLM", "TabReD", "schema", 28, 1, 0.008237, 75055, 4360, 62010.9),
     # Повторы на MLAgentBench, сентябрь 2026. У этих строк последнее поле — СУММА
     # времён отдельных испытаний, а не сквозное время задания, поэтому
     # предпоследнее поле равно 1: та же формула wall*conc/n тогда даёт среднее
@@ -874,7 +883,7 @@ KDISC_TERM = [
     ("neither",                        24,  2, 8,  6,  2.5, 0.0029, None),
     ("discipline",                    24, 13, 7, 18, 14.1, 0.0303, -0.05),
     ("discipline, minus time",        24,  0, 8,  7,  3.0, 0.0044, -0.69),
-    ("library",                       24, 21, 3, 14, 10.3, 0.0131, +1.21),
+    ("library",                       24, 21, 3, 14.5, 10.3, 0.0131, +1.21),
     ("both",                           24, 11, 6, 20, 18.4, 0.1172, +1.13),
 ]
 # Fisher's exact, two-sided, on the loss counts
@@ -932,7 +941,7 @@ def table_kdisc_term():
 AXIS = {
     "Terminus-2": [
         # model, trials, losses, timeouts_or_None, in_tok_per_trial, cost, mean_delta, median_delta
-        ("gemma-4-26b-a4b", 24, 6, None, 720720, 0.9263, -0.93, -0.06),
+        ("gemma-4-26b-a4b", 24, 5, None, 722635, 0.9292, -0.93, -0.06),
         ("gemma-4-31b",     24, 2, None,  37317, 0.0690,  None,  None),
         ("glm-4.7",         24, 0, None, 110602, 0.7615, -5.31, -0.54),
     ],
@@ -998,8 +1007,8 @@ def table_cost():
     A(r"\begin{table}[!t]")
     A(r"\centering")
     A(r"\caption{Cost and wall-clock per trial from the Harbor telemetry: means "
-      r"over trials of the trials' own cost, tokens and time. "
-      r"Bold: the lowest value in its column within a benchmark.}")
+      r"over trials of the trials' own cost, tokens and time. MLAB abbreviates "
+      r"MLAgentBench. Bold: the lowest value in its column within a benchmark.}")
     A(r"\label{tab:cost}")
     A(r"\scriptsize")
     A(r"\setlength{\tabcolsep}{2.5pt}")
@@ -1441,7 +1450,9 @@ def fig_walltime():
 # Backbone axis, 29-30.08.2026 on nss-calc2 (jobs terminus-tabred-M*, autods-tabred-M*).
 # AUTODS_GLM: three attempts per task since 07.10.2026 (August attempt plus two
 # more, same command); assembled by runs/autods-tabred/fill/glm_cell.py.
-TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547614, 0.162790, 1.617088]
+# TERM_26B: the delivery-eta trial lost to APIError in August was rerun on
+# 12.10.2026 (terminus-tabred-Msmall-fill-20261012-143233) and scored 0.547829.
+TERM_26B = [0.958848, 0.567430, 0.854153, 0.254195, 0.483812, 0.547686, 0.162790, 1.617088]
 TERM_31B_AXIS = [0.959566, 0.563585, 0.857289, 0.250328, 0.483718, 0.547847, 0.162705, 1.523593]
 TERM_GLM = [0.954624, 0.604341, 0.852459, 0.365072, 0.483784, 0.552850, 0.163378, 1.545516]
 AUTODS_26B = [0.959968, 0.579983, 0.859903, 0.252292, 0.482312, 0.547438, 0.162112, 1.479850]
@@ -1458,10 +1469,12 @@ TERM_KBOTH = [None, 0.579979, 0.863972, 0.251457, None, 0.547438, 0.161918, 1.47
 # Trials that ended without a submission, per cell (of the trials run).
 LOST = {
     "autods_both": (1, 24), "autods_none": (0, 24), "autods_tool": (0, 24), "autods_disc": (0, 24),
-    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (0, 24),
+    # fedot: four of 28 trials reached the 3600 s limit without a submission;
+    # the two tasks were repeated until each had three scored attempts.
+    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (4, 28),
     "term_none_axis": (2, 24), "term_kdisc": (13, 24), "term_kdisc_trim": (0, 24),
     "term_ktool": (21, 24), "term_kboth": (11, 24),
-    "term_small": (6, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
+    "term_small": (5, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
     # MLAgentBench, eight repeatable tasks x three attempts
     "mlab_autods_none": (2, 24), "mlab_autods_file": (9, 24), "mlab_term": (6, 24),
 }
