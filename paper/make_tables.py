@@ -998,8 +998,8 @@ def table_cost():
     A(r"\begin{table}[!t]")
     A(r"\centering")
     A(r"\caption{Cost and wall-clock per trial from the Harbor telemetry: means "
-      r"over trials of the trials' own cost, tokens and time. MLAB abbreviates "
-      r"MLAgentBench. Bold: the lowest value in its column within a benchmark.}")
+      r"over trials of the trials' own cost, tokens and time. "
+      r"Bold: the lowest value in its column within a benchmark.}")
     A(r"\label{tab:cost}")
     A(r"\scriptsize")
     A(r"\setlength{\tabcolsep}{2.5pt}")
