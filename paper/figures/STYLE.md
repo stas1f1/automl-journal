@@ -1,56 +1,172 @@
-# House style for the figures (6 October 2026)
+# Фирменный стиль рисунков (14 октября 2026)
 
-The Okabe-Ito hues of the first version, in cooler and deeper shades, with the
-original neutral greys. Every figure as it was before the change is in
-`figures/archive_2026-10-06_okabe-ito/` (with the TikZ source of Fig. 1 and
-the colour definitions from `main.tex`). Swatch: `STYLE_swatch.png`.
-The colours are defined once, in `make_figures.py` (`C`, `KNOWLEDGE`, `CASE`,
-neutrals); `make_case_figures.py` imports them, and Fig. 1 takes them from the
-`\definecolor` lines in `main.tex`.
+В статье два вида рисунков.
 
-## Rules
+- **Графики** (рис. 2–5) строит matplotlib: `make_figures.py` и
+  `make_case_figures.py`. От фирменного стиля графики берут только цвета.
+  Шрифт, кегли, линии, сетка и маркеры задаются настройками matplotlib в
+  `make_figures.py` (`rcParams`) и в этот файл не входят.
+- **Иллюстрация** (рис. 1, `fig_allsystems.pdf`) нарисована отдельно. Для неё
+  действует весь стиль: цвета, формы, линии, шрифт. Значения взяты из кода,
+  который её строит: `variants/fig1_forest.py` и `variants/human.py`. Этот
+  код лежит вне репозитория.
 
-1. Each system keeps one colour and one marker in every figure:
-   AutoDS-Tools cobalt diamond, Terminus-2 red-orange circle, FEDOT.LLM
-   teal-green square. Open marker = the same system without its instruction
-   file.
-2. Colour stands for a system only. Everything else (published methods,
-   bands, reference lines) is a neutral grey.
-3. The instruction file has its own colour, a pale canary like a sticky note,
-   used only in Fig. 1.
-4. The case-study data panels (Fig. 3a) show raw data, no system appears in
-   them, and they use the classic matplotlib colours (tab:blue, tab:orange,
-   tab:gray).
+Других иллюстраций в статье нет: рис. 3 (данные трёх задач) и рис. 4
+(попытки против авторских базовых значений) состоят из графиков.
 
-## Colours
+Рисунки до смены стиля лежат в `figures/archive_2026-10-14_cobalt-redorange-teal/`
+(вместе с прежним `STYLE.md`), более ранние в
+`figures/archive_2026-10-06_okabe-ito/`. Образец цветов: `STYLE_swatch.png`.
 
-| Role | Name | Hex |
-|---|---|---|
-| AutoDS-Tools | cobalt | `#1F5FA8` |
-| Terminus-2 | red-orange | `#D2502A` |
-| FEDOT.LLM | teal-green | `#0E9488` |
-| instruction file (Fig. 1) | pale canary | `#F7F0C4` |
-| case data, primary (Fig. 3a) | matplotlib tab:blue | `#1F77B4` |
-| case data, held-out / reference (Fig. 3a) | matplotlib tab:orange | `#FF7F0E` |
-| case data, training / background (Fig. 3a) | matplotlib tab:gray | `#7F7F7F` |
-| text | ink | `#1A1A1A` |
-| secondary text | muted | `#6E6E6E` |
-| published methods | grey | `#B0B0B0` |
-| tuned XGBoost, LightGBM, CatBoost | dark grey | `#3A3A3A` |
-| band (middle half of published methods) | light grey | `#E6E6E6` |
-| fixed stages in Fig. 1 | light grey | `#E8E8E8` |
-| grid | — | `#E4E4E4` |
+---
 
-## Accessibility check
+# 1. Цвета (графики и иллюстрация)
 
-Minimum pairwise CIELAB distance between the three system colours, over
-normal vision and simulated protanopia, deuteranopia and tritanopia
-(Machado et al. 2009, full severity): 19.8 (original Okabe-Ito: 17.0). The
-canary is at least 41 from every system colour. Lightness of the system
-colours is 40, 51 and 55; in greyscale the markers carry the identity.
+## Системы
 
-## Status
+Цвет системы показывает, какой системе принадлежит элемент. На иллюстрации
+он ещё показывает, где решения принимает модель.
 
-All figures in the paper use this palette: Fig. 1 (`fig_allsystems.pdf`,
-drawn by hand in the same colours and included from `figures_systems.tex`), Fig. 2 (`fig_leaderboard`), Fig. 3 (`fig_cases`) and
-Fig. 4 (`fig_ablations`).
+| система | основной | фон карточки (тинт 7 %) | пунктирные разделители (тинт 45 %) |
+|---|---|---|---|
+| FEDOT.LLM | `#2E7D32` лесной | `#F0F6F1` | `#A1C4A3` |
+| AutoDS-Tools | `#283593` тёмно-синий | `#F0F1F7` | `#9EA4CE` |
+| Terminus-2 | `#C62828` малиновый | `#FBF0F0` | `#E59E9E` |
+
+На графиках используется только основной цвет. Тинты нужны иллюстрации.
+
+## Правила для графиков
+
+1. У каждой системы один цвет и один маркер во всех рисунках:
+   AutoDS-Tools тёмно-синий ромб, Terminus-2 малиновый круг, FEDOT.LLM
+   лесной квадрат. Пустой маркер означает ту же систему без файла
+   инструкций.
+2. Цвет обозначает только систему. Всё остальное (опубликованные методы,
+   полосы, опорные линии) нейтрально серое.
+3. Панели с исходными данными задач (рис. 3) системы не показывают и берут
+   классические цвета matplotlib `tab:blue` `#1F77B4` и `tab:gray`
+   `#7F7F7F`, а для того, что надо предсказать, и опорных линий
+   приглушённый оранжевый `#E3924E` (вместо `tab:orange` `#FF7F0E`).
+
+## Нейтральные цвета графиков
+
+| назначение | цвет |
+|---|---|
+| текст | `#1A1A1A` |
+| второстепенный текст | `#6E6E6E` |
+| опубликованные методы | `#B0B0B0` |
+| настроенные XGBoost, LightGBM, CatBoost | `#3A3A3A` |
+| полоса (средняя половина опубликованных методов) | `#E6E6E6` |
+| сетка | `#E4E4E4` |
+
+## Различимость
+
+Минимальное попарное расстояние CIELAB между тремя цветами систем при
+нормальном зрении и смоделированных протанопии, дейтеранопии и тританопии
+(Machado et al. 2009, полная степень) равно 15.8. Это пара FEDOT.LLM и
+Terminus-2 при дейтеранопии (у прежней палитры минимум был 19.8). Светлота
+L* трёх цветов 46, 27 и 44, поэтому в оттенках серого лесной и малиновый
+почти совпадают. На графиках систему всегда дополнительно различает маркер,
+на иллюстрации подпись.
+
+---
+
+# 2. Иллюстрация (рис. 1)
+
+Единицы: толщины линий в пунктах (pt), размеры, отступы и скругления в
+миллиметрах (мм). Рисунок на всю ширину полосы, 180 × 75 мм, векторный PDF
+со встроенными шрифтами.
+
+## Нейтральные и служебные цвета
+
+| назначение | цвет |
+|---|---|
+| основной текст | `#1A1A1A` |
+| второстепенный текст, петли повтора | `#6E6E6E` |
+| стрелки и связи | `#4A4A4A` |
+| обводка фиксированных блоков и нижней плашки | `#A0A0A0` |
+| листы submission: обводка | `#4A4A4A` |
+| листы submission: загнутый угол | `#E3E3E3` |
+| стикеры файла инструкций: заливка | `#FFF1C1` |
+| стикеры: нижняя полоска | `#EDE0B3` |
+| стикеры: скотч | `#E6E2D6` |
+| шевроны фаз (explore, plan, write code, run) | `#E6E8EB`, `#D7DBE0`, `#C9CED4`, `#BAC0C9` |
+| текст на шевронах | `#29323E` |
+
+Шевроны являются тинтами тона `#4A5A70` на 14, 22, 30 и 38 %. Текст на них
+тот же тон, затемнённый до 55 %.
+
+## Формы
+
+| элемент | заливка | обводка | скругление |
+|---|---|---|---|
+| фиксированная стадия | белая | `#A0A0A0`, 0.6 pt | 1.8 мм |
+| блок, где решает модель | белая | цвет системы, 1.1 pt | 1.8 мм |
+| карточка системы | цвет системы, тинт 7 % | нет | 1.8 мм |
+| плашка с именем системы | цвет системы | нет | 1.0 мм |
+| нижняя плашка с моделью | белая | `#A0A0A0`, 0.6 pt | 2.8 мм (капсула) |
+| шеврон фазы | тинт `#4A5A70` | нет, зазор между шевронами 1 мм | 0.9 мм на всех углах |
+| стикер файла инструкций | `#FFF1C1` | нет | 0.3 мм, полоска скотча сверху |
+| лист submission | белая | `#4A4A4A`, 0.55 pt | загнутый угол 2 мм, стопка из 3 листов со сдвигом 0.9 мм |
+
+Размеры по высоте:
+- стадии FEDOT.LLM и Terminus-2: 8.6 мм;
+- агенты AutoDS-Tools: по 5.2 мм с зазором 1.2 мм, общий блок 11.6 мм;
+- шеврон: 4.6 мм;
+- нижняя плашка: 5.6 мм.
+
+Высота двух стикеров пропорциональна длине частей файла: library около
+1 300 знаков, discipline около 3 000. Зазор между стикерами 1.8 мм.
+
+## Линии
+
+| линия | толщина | цвет | наконечник | прочее |
+|---|---|---|---|---|
+| поток между стадиями | 0.6 pt | `#4A4A4A` | 1.2 × 1.0 мм | скругление изгиба 0.8 мм |
+| связи от файла инструкций | 0.8 pt | `#4A4A4A` | 1.1 × 0.96 мм | |
+| петли повтора | 0.6 pt | `#6E6E6E` | 1.1 × 0.96 мм | скругление 1.0 мм, подъём 2.2 мм |
+| стрелки внутри пар агентов | 0.5 pt | `#4A4A4A` | 0.8 × 0.8 мм | |
+| скобка вокруг двух стикеров | 0.5 pt | `#4A4A4A` | нет | скругление 0.5 мм |
+
+Три вида связи файла инструкций с системами:
+- сплошная линия: «built in» (FEDOT.LLM);
+- линия с ключом-переключателем: «on / off» (AutoDS-Tools);
+- пунктир 2.4 / 1.6 мм: «ablation» (Terminus-2).
+
+## Шрифт
+
+Одна гарнитура, Avenir Next, только начертания Regular и Bold. Курсив не
+используется. Самый мелкий кегль 7 pt.
+
+| роль | кегль | начертание | цвет |
+|---|---|---|---|
+| подписи в блоках | 8 pt | Regular | `#1A1A1A` |
+| имя системы (в плашке) | 7.5 pt | Bold | белый |
+| подпись под системой | 7 pt | Regular | цвет системы |
+| названия фаз на шевронах | 7.5 pt | Bold | `#29323E` |
+| заголовок «instruction file» | 7.5 pt | Bold | `#1A1A1A` |
+| подписи связей («built in», «on / off», «ablation») | 7 pt | Regular | `#1A1A1A` |
+| подписи петель («retry», «one agent repeats every phase until done») | 7 pt | Regular | `#6E6E6E` |
+| «library», «discipline», «submission» | 7 pt | Regular | `#1A1A1A` |
+| легенда | 7 pt | Regular | `#444444` |
+| нижняя плашка | 8 pt | Regular, имя модели Bold | `#1A1A1A` |
+
+Все подписи строчными буквами, кроме имён систем и агентов.
+
+## Правила сочетания
+
+1. Фиксированное и решаемое моделью различаются линией. Фиксированные блоки
+   имеют тонкую серую обводку, блоки модели толстую цветную. Различие видно
+   и в чёрно-белой печати.
+2. Цвет системы стоит ровно в четырёх местах: плашка с именем, подпись под
+   ней, обводка блоков модели, фон карточки на 7 %.
+3. Жёлтый есть только у файла инструкций.
+4. Шапка фаз нейтральная: сланцево-серая, темнеет к «run», цвета систем не
+   повторяет.
+5. Bold только для имён: систем, фаз, «instruction file» и самой модели.
+   Пояснения всегда Regular.
+6. Все углы скруглены. У карточек и блоков радиус 1.8 мм. Острые только
+   загнутые углы листов.
+7. Нижняя плашка с моделью по ширине совпадает с карточками систем.
+8. На иллюстрации нет результатов: ни оценок, ни рангов, ни стрелок «лучше»
+   и «хуже».

@@ -7,7 +7,7 @@ cannot drift from the tables or from the macros in tables/numbers.tex.
 
 House style: one sans font; titles centred, short, the same size everywhere;
 no top or right spine; a light grid on the value axis only; colour for identity
-only (Okabe-Ito hues, validated for colour-vision deficiency); grey for context.
+only (the three system colours of figures/STYLE.md); grey for context.
 """
 import statistics as st
 from pathlib import Path
@@ -24,21 +24,22 @@ import make_tables as mt  # noqa: E402
 OUT = Path(__file__).parent / "figures"
 OUT.mkdir(exist_ok=True)
 
-# House palette, 6 October 2026: the Okabe-Ito hues in cooler, deeper shades
-# (the previous figures are in figures/archive_2026-10-06_okabe-ito/).  One
-# colour and one marker per system across every figure; a pale canary for the
-# instruction file; classic matplotlib colours for the raw case-study data.
-# Neutrals are the original greys.  Details in figures/STYLE.md.
+# House palette, 14 October 2026: the system colours of Fig. 1 (forest, navy,
+# crimson); the previous figures are in figures/archive_2026-10-14_cobalt-
+# redorange-teal/.  One colour and one marker per system across every figure;
+# classic matplotlib colours for the raw case-study data.  Only the colours
+# come from the house style, everything else from the rcParams below.
+# Details in figures/STYLE.md.
 INK = "#1a1a1a"            # text, axes labels
 MUTED = "#6e6e6e"          # secondary text
 GRID_C = "#e4e4e4"         # grid lines
-C = {"AutoDS-Tools": "#1F5FA8",   # cobalt
-     "Terminus-2": "#D2502A",     # red-orange
-     "FEDOT.LLM": "#0E9488",      # teal-green
+C = {"AutoDS-Tools": "#283593",   # navy
+     "Terminus-2": "#C62828",     # crimson
+     "FEDOT.LLM": "#2E7D32",      # forest
      "context": "#9a9a9a"}        # grey, anything that is not a system
-KNOWLEDGE = "#F7F0C4"      # instruction file: pale canary, a sticky-note highlight
+KNOWLEDGE = "#FFF1C1"      # instruction file: sticky-note yellow, used in Fig. 1 only
 CASE = {"primary": "#1F77B4",     # matplotlib tab:blue, the data a case panel shows
-        "highlight": "#FF7F0E",   # tab:orange, the part to predict, a reference line
+        "highlight": "#E3924E",   # muted orange, the part to predict, a reference line
         "context": "#7F7F7F"}     # tab:gray, training or background data
 
 TITLE = dict(fontsize=7, fontweight="bold", loc="center")
@@ -80,7 +81,7 @@ def grid_cell(col):
 
 
 # figures the paper includes; the others go to figures/archive/
-IN_PAPER = {"fig_leaderboard", "fig_ablations", "fig_cases"}
+IN_PAPER = {"fig_leaderboard", "fig_ablations", "fig_case_data", "fig_cases"}
 
 
 def save(fig, name):
@@ -639,7 +640,7 @@ def lb_rank_panel(ax):
                     solid_capstyle="butt")
             _sys_marker(ax, x, i, sysname, filled=(m != NOFILE), size=30)
             ax.text(lo - 0.45, i, f"{x:.1f}", ha="left", va="center", fontsize=6,
-                    color=SYS_MARK[sysname][1], fontweight="bold")
+                    color=SYS_MARK[sysname][1])
             labels.append((m, True, SYS_MARK[sysname][1]))
         else:
             gb = m in GBDT
@@ -647,10 +648,8 @@ def lb_rank_panel(ax):
             labels.append((m, gb, INK if gb else MUTED))
     ax.set_yticks(range(n))
     ax.set_yticklabels([m for m, _b, _c in labels], fontsize=6.3)
-    for tick, (_m, bold, col) in zip(ax.get_yticklabels(), labels):
+    for tick, (_m, _key, col) in zip(ax.get_yticklabels(), labels):
         tick.set_color(col)
-        if bold:
-            tick.set_fontweight("bold")
 
 
 def lb_task_panel(ax):
@@ -678,7 +677,10 @@ def lb_task_panel(ax):
             y = j + dy[a]
             ax.plot([min(att), max(att)], [y, y], color=SYS_MARK[a][1], lw=1.0, zorder=5)
             _sys_marker(ax, mt.normalized(mt.AGENTS[a][j], j), y, a)
-        _sys_marker(ax, mt.normalized(nolayer[j], j), j + dy["AutoDS-Tools"], "AutoDS-Tools", filled=False)
+        # open marker larger and below the filled one: where the two coincide
+        # (sberbank-housing) it shows as a ring around the filled diamond
+        _sys_marker(ax, mt.normalized(nolayer[j], j), j + dy["AutoDS-Tools"], "AutoDS-Tools",
+                    filled=False, size=40, z=5)
     ax.set_yticks(range(n))
     ax.set_yticklabels([f"{s}  ({m})" for s, m in zip(mt.SHORT, mt.METRIC)], fontsize=6.3)
     for j in range(n - 1):
@@ -697,16 +699,11 @@ def fig_leaderboard():
                 fontsize=8.5, fontweight="bold")
         ax.text(0.0, 1.015, head, transform=ax.transAxes, ha="left", va="bottom", fontsize=7)
     handles = [
-        Line2D([], [], marker="D", color=C["AutoDS-Tools"], ls="", ms=4.5, label="AutoDS-Tools"),
-        Line2D([], [], marker="D", mfc="white", mec=C["AutoDS-Tools"], ls="", ms=4.5,
-               label="AutoDS-Tools without its instruction file"),
-        Line2D([], [], marker="o", color=C["Terminus-2"], ls="", ms=4.5, label="Terminus-2"),
-        Line2D([], [], marker="s", color=C["FEDOT.LLM"], ls="", ms=4.5, label="FEDOT.LLM"),
         Line2D([], [], marker="|", color=GBDT_DOT, ls="", ms=7, mew=1.0,
                label="tuned XGBoost, LightGBM, CatBoost"),
         plt.Rectangle((0, 0), 1, 1, color=BAND, label="middle half of the 18 published methods"),
     ]
-    fig.legend(handles=handles, loc="upper center", ncol=3, frameon=False, fontsize=6.3,
+    fig.legend(handles=handles, loc="upper center", ncol=2, frameon=False, fontsize=6.3,
                handletextpad=0.4, columnspacing=1.4, bbox_to_anchor=(0.56, 1.0))
     fig.subplots_adjust(top=0.84)
     save(fig, "fig_leaderboard")
@@ -728,13 +725,13 @@ ABL_ROWS = [
     (None, "FEDOT.LLM", "AutoDS-Tools", "archAutoDSvsFedot", "AutoDS-Tools", "autods_none", "fedot", "FEDOT.LLM"),
     ("Instruction file in AutoDS-Tools", None, None, None, None, None, None),
     (None, "no file", "whole file", "fileBoth", "AutoDS-Tools", "autods_both", "autods_none"),
-    (None, "no file", "library part", "fileTool", "AutoDS-Tools", "autods_tool", "autods_none"),
-    (None, "no file", "discipline part", "fileDisc", "AutoDS-Tools", "autods_disc", "autods_none"),
+    (None, "no file", "library instruction", "fileTool", "AutoDS-Tools", "autods_tool", "autods_none"),
+    (None, "no file", "discipline instruction", "fileDisc", "AutoDS-Tools", "autods_disc", "autods_none"),
     ("Same file in the Terminus-2 task", None, None, None, None, None, None),
     (None, "no file", "whole file", "termBoth", "Terminus-2", "term_kboth", "term_none_axis"),
-    (None, "no file", "library part", "termTool", "Terminus-2", "term_ktool", "term_none_axis"),
-    (None, "no file", "discipline part", "termDisc", "Terminus-2", "term_kdisc", "term_none_axis"),
-    (None, "no file", "discipline, time advice cut", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
+    (None, "no file", "library instruction", "termTool", "Terminus-2", "term_ktool", "term_none_axis"),
+    (None, "no file", "discipline instruction", "termDisc", "Terminus-2", "term_kdisc", "term_none_axis"),
+    (None, "no file", "discipline, trimmed", "termTrim", "Terminus-2", "term_kdisc_trim", "term_none_axis"),
     ("Container image, Terminus-2", None, None, None, None, None, None),
     (None, "stock", "libraries pre-installed", "image", "Terminus-2", "term_enriched", "term_stock"),
     ("Language model, Terminus-2", None, None, None, None, None, None),
@@ -805,11 +802,11 @@ def fig_ablations():
             continue
         col = C[sysname]
         fig.text(xl, i, left, transform=tr, ha="right", va="center", fontsize=6.4,
-                 color=C[left_sys] if left_sys else INK, fontweight="bold" if left_sys else "normal")
+                 color=C[left_sys] if left_sys else INK)
         fig.text(xr, i, right, transform=tr, ha="left", va="center", fontsize=6.4,
-                 color=col if left_sys else INK, fontweight="bold" if left_sys else "normal")
+                 color=col if left_sys else INK)
         if key is None:
-            ax.text(0, i, "no common scale, see Table 4", ha="center", va="center",
+            ax.text(0, i, "no common scale, see Table 3", ha="center", va="center",
                     fontsize=6, color=MUTED, style="italic")
         else:
             s = mt.paired_stats(*comps[key])
@@ -843,19 +840,19 @@ def fig_ablations():
         sa, sb = ta - la, tb - lb                      # trials with a submission
         d = 100 * sa / ta - 100 * sb / tb
         if abs(d) > 0.5:
-            ax2.barh(i, d, height=0.55, color=col, zorder=3, lw=0)
+            # two systems: the bar takes the colour of the side with more submissions
+            bar_col = C[left_sys] if (left_sys and d < 0) else col
+            ax2.barh(i, d, height=0.55, color=bar_col, zorder=3, lw=0)
         cc = INK
-        fig.text(xcl, i, f"{sb}/{tb}", transform=tr, ha="right", va="center", fontsize=5.8, color=cc)
-        fig.text(xc, i, f"{sa}/{ta}", transform=tr, ha="left", va="center", fontsize=5.8, color=cc)
+        assert ta == tb == 24, (key, ta, tb)            # the header says "of 24"
+        fig.text(xcl, i, f"{sb}", transform=tr, ha="right", va="center", fontsize=5.8, color=cc)
+        fig.text(xc, i, f"{sa}", transform=tr, ha="left", va="center", fontsize=5.8, color=cc)
     # headers
     hy = 1.012
-    for a_, title, lt, rt in ((ax, "Accuracy", "← left better", "right better →"),
-                              (ax2, "Trials with a submission", "← left", "right →")):
-        a_.text(0.5, hy + 0.035, title, transform=a_.transAxes, ha="center", va="bottom",
+    for a_, title in ((ax, "Accuracy"), (ax2, "Trials with a submission (of 24)")):
+        a_.text(0.5, hy, title, transform=a_.transAxes, ha="center", va="bottom",
                 fontsize=7, fontweight="bold")
-        a_.text(0.0, hy, lt, transform=a_.transAxes, ha="left", va="bottom", fontsize=6.0, color=MUTED)
-        a_.text(1.0, hy, rt, transform=a_.transAxes, ha="right", va="bottom", fontsize=6.0, color=MUTED)
-    fig.text(xt, (top + 0.02) / H, "tasks won\nleft : right", ha="center", va="bottom",
+    fig.text(xt, (top + 0.02) / H, "tasks won", ha="center", va="bottom",
              fontsize=5.8, color=MUTED)
 
     save(fig, "fig_ablations")

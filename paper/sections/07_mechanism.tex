@@ -4,20 +4,21 @@
 % Remaster, 6 October 2026.
 
 Harbor records every trial's execution trace. We check the traces for three
-things: who builds the model, whether the discipline instruction changes the
-agent's behaviour, and how often an instruction sends the agent into repair.
+things: who builds the model and whether the discipline instruction changes
+the agent's behaviour with the model builder unchanged (H2),
+and how often an instruction sends the agent into repair (H3).
 
 \subsection{Who builds the model: the agent or an AutoML library}
 \label{sec:spontaneous}
 
 Without a library instruction, both agents build the model themselves.
 Terminus-2 fitted a gradient-boosting model on every TabReD task in every
-attempt: LightGBM in 23 of the 24 trials of Section~\ref{sec:abl-image} and
+trial: LightGBM in 23 of the 24 trials of Section~\ref{sec:abl-image} and
 XGBoost in the remaining one. On the stock image it installed LightGBM
 itself in 18 of the 24 trials. AutoDS-Tools without the library
 instruction wrote LightGBM, XGBoost or CatBoost by hand in all 24 trials of
 each of its two cells without it. The configuration is hand-written and
-near-identical across tasks and attempts: for Terminus-2 the code sets
+near-identical across tasks and trials: for Terminus-2 the code sets
 1\,000 estimators and a learning rate of $0.05$ in all 24 trials and early
 stopping on a holdout in 23. No trace of either agent contains a hyperparameter search,
 by Optuna, grid, randomised search or a cross-validated sweep.
@@ -30,26 +31,30 @@ linear model, LightGBM and CatBoost, tunes the two boosting models with
 Optuna within its time budget and blends the results. A rerun of the
 prescribed call on F-DATA recorded 101 Optuna trials per boosting model. The
 library instruction therefore replaces one hand-written model with an AutoML
-search. The best cell scores $\nGridTool$ against $\nBest$ for the
-strongest published method, an MLP-PLR ensemble tuned with Optuna and
-averaged over fifteen seeds. The per-trial extraction of learners and
+search. The strongest published method is tuned with Optuna and averaged
+over fifteen seeds, and no agent ran a search of that size over its own
+code. The per-trial extraction of learners and
 settings is in the repository (\texttt{trace\_learners.csv}).
+
+This is the mechanism behind \ref{hyp:builder}. Without a library the agent
+writes one default configuration and stops. The library instruction moves
+the search and the tuning into the model builder.
 
 
 \subsection{The discipline instruction reaches the agent and leaves the score unchanged}
 \label{sec:discipline}
 
-The discipline instruction moves the task metric by $\gridDiscMeanU\%$ on
-average (Table~\ref{tab:grid}), and the traces show that the agent follows
-it. Three clauses ask it to compare against a trivial predictor, to plan the
+The discipline instruction barely moves the task metric
+(Table~\ref{tab:grid}), and the traces show that the agent follows it. Three clauses ask it to compare against a trivial predictor, to plan the
 time budget before starting, and to keep the variant that validates best.
 All three behaviours appear in every trial that left a trace in the two
 cells with the discipline instruction. In the two cells without it, the
-first two appear in no trial and the third in 2 of 48. On
-these tabular tasks the agent's own choices were already adequate, so
-following the instruction changed little in the score.
+first two appear in no trial and the third in 2 of 48. The agent follows the
+instruction, and the score stays where it was. This supports
+\ref{hyp:builder} from the other side: knowledge that changes how the agent
+works and leaves the model builder as it was leaves accuracy as it was.
 
-\subsection{Instructions make execution fail more often}
+\subsection{Instructions and execution failures}
 \label{sec:friction}
 
 AutoDS-Tools contains a repair loop, invoked when execution fails. The loop
@@ -66,7 +71,9 @@ instruction tells the agent not to stop after ``an arbitrary small budget (5
 or 15 epochs is almost always badly undertrained)'' and offers
 ``$\sim 100$ epochs'' as a starting point. On \texttt{clrs} the agent
 without the file chose 5 to 30 epochs and used 92 of a 120-minute budget on
-one attempt. With the file it attempted a hundred epochs and made no
-submission in three attempts. Instructions can therefore increase execution
-failures, and their net effect is positive only when the gain from the
-prescribed tool offsets those failures.
+one trial. With the file it attempted a hundred epochs and made no
+submission in three trials. For \ref{hyp:interaction}, an instruction can
+therefore change reliability through execution failures. In AutoDS-Tools the
+repair loop turns these failures into extra iterations, which is one reason
+the file costs it few submissions. Where the loop cannot help, as on
+\texttt{clrs} with a hundred epochs in a fixed budget, the trial is lost.

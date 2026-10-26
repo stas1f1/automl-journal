@@ -3,76 +3,84 @@
 
 % Remaster, 6 October 2026.
 
-\subsection{What the results say about harness design}
+% 26 October 2026: 9.1 discusses the hypotheses beyond the test bed, 9.2
+% gives the design rules of contribution 4.
 
-On TabReD, AutoDS-Tools with its instruction file ranks first, and
-FEDOT.LLM and Terminus-2 are level on average. The order follows who builds
-the model and whether it is tuned. An agent writing its own code fits one
-untuned gradient-boosting model. LightAutoML tunes and blends its boosting
-models. The FEDOT backend searches only when fitting its default pipeline
-leaves time, which happened on two TabReD tasks of eight. With the model
-built the same way, the harness changes the mean score little. It decides
-reliability, wall-clock time, the tasks a system can attempt and whether a
-library call ends in a submission. FEDOT.LLM calls its backend on every
-task, and the repair loop of AutoDS-Tools waits out the long LightAutoML fit
-(no cell lost more than one trial of 24). Terminus-2 with the same
-instruction submits nothing in \ktToolLost{} of \ktToolTrials{} trials,
-because it reads the silent terminal of a long fit as a failure.
+\subsection{What the hypotheses mean beyond this test bed}
+\label{sec:beyond}
 
-Task by task, AutoDS-Tools with its file is the best of the three on six of
-eight TabReD tasks. Its gain from the file grows with the distance between
-the hand-written model and tuned gradient boosting, from near zero on
-\texttt{homesite-insurance} and \texttt{delivery-eta} to the largest on
-\texttt{ecom-offers} and \texttt{cooking-time}. On
-\texttt{sberbank-housing}, the smallest table, LightAutoML adds nothing.
-FEDOT.LLM wins on classification, where its default ensemble is strong
-(\texttt{ecom-offers}, F-DATA), and on the small \texttt{sberbank-housing},
-where its search runs. On large regression tables it trails with an
-untuned random forest. Terminus-2 wins no TabReD task. On maize, whose test
-set holds unseen location-years, its simple models transfer better than
-the tuned ensemble of AutoDS-Tools.
+\ref{hyp:harness} held for harnesses that leave the model to the agent. With
+the file off, a workflow, a six-agent system and a single shell agent end
+with similar accuracy and differ in time, reliability and the tasks they
+accept. The traces give the reason: each harness ends with the same kind of
+model, a hand-written gradient-boosting configuration. We therefore expect
+\ref{hyp:harness} to hold for other harnesses whose agents write their own
+models. We expect it to fail for harnesses that search over candidate
+solutions, since they run part of the tuning themselves
+(Section~\ref{sec:why-three}). A harness is then chosen for reliability,
+run time and the range of tasks, and accuracy has to come from elsewhere.
 
-The file helps in the setting it was written for: its own harness, a task
-solved from scratch, the task family of the library it names. Appended to
-the Terminus-2 task, it leaves \ktBothLost{} of 24 to \ktToolLost{} of
-\ktToolTrials{} trials per cell without a submission. Given a working
-script, it leaves \mlabWiped{} of \mlabRepeated{} MLAgentBench tasks without
-one. Both failures come from specific sentences, the advice on training
-time and the instruction to replace the supplied tool, and switching the
-whole file on and off cannot locate them. This may explain why published
-ablations of instruction files and retrieved knowledge disagree: a file
-measured in one harness and from one starting point has to be measured
-again in another.
+\ref{hyp:builder} held in every comparison where the model builder changed.
+These are the library instruction in AutoDS-Tools and in Terminus-2,
+FEDOT.LLM task by task, and glm-4.7 on \texttt{sberbank-housing}. It links agentic AutoML with
+the AutoML frameworks of the last decade. An agent gains accuracy when it
+hands the model to a procedure that searches and tunes, and the agents in
+our traces never ran such a search on their own. Maize sets a limit. A
+search tunes to the validation data, and when validation does not match the
+test split, a tuned ensemble can transfer worse than a simple model. The
+remaining gap to the strongest published method points to the next addition
+to test: a search that the agent runs over its own code.
 
-No configuration reaches the strongest published method. The reference
-methods are tuned over fifteen
-seeds, and the traces point to the next addition to test: a hyperparameter
-search that the agent runs over its own code, which none of our agents
-attempted.
+\ref{hyp:interaction} held for both the file and the language model. The
+file adds accuracy in the harness it was written for. It costs submissions
+in Terminus-2, where a long fit leaves the terminal silent, and from a
+working script, where it replaces a decision already made. A larger model
+removes trials without a submission in one harness and adds them in the
+other, where half of its trials reach the time limit. In both cases the
+instruction or the model meets the control flow and the time budget of a
+particular harness. An instruction file or a language model is therefore
+part of the system under test, and its measurement has to be repeated in
+each harness. This may explain why published ablations of instruction files
+and retrieved knowledge disagree.
 
-\subsection{Guidance for practitioners}
+Terminal-Bench~2.0 introduces Terminus-2 as a neutral harness so that a
+leaderboard over it compares models~\citep{merrill2026terminalbench}, and
+work on coding agents reports that elaborate harnesses add little over a
+minimal one once the model is
+strong~\citep{brilliantov2026harness,hu2026beyondmodel}. Our results agree
+for the harness (\ref{hyp:harness}). They add that a leaderboard built around
+one harness also measures the instructions that come with it. Inside
+AutoDS-Tools the file moves the score about as much as replacing the
+language model with glm-4.7 (\ref{hyp:interaction}).
 
-The results give one rule per situation. When a strong tuned baseline
-exists, use it: every cell in the paper is below the strongest published method. For a tabular task from
-scratch with accuracy first and an hour per task acceptable, use
-AutoDS-Tools with its instruction file, which hands the modelling to an
-AutoML library. For a first pass over a new scientific dataset in minutes
-per attempt, use Terminus-2 with the task text alone. It beat the author
-baseline on maize, exceeded the author figure on F-DATA and found the
-published featurisation on OpenPoly. Use FEDOT.LLM for classification, where
-its default ensemble made it the best of the three on \texttt{ecom-offers}
-and F-DATA, and for tables small enough for its search to run. On large
-regression tables its default random forest ranks near the bottom. When
-a working script is supplied, prescribe nothing. Two rules hold across at
-least two protocols: prescribe only the decision the model would otherwise
-get wrong, and keep advice about training time out of the prompt of any
-harness with a hard time limit.
+\subsection{Design rules}
+\label{sec:rules}
+
+Four rules follow from the hypotheses and hold in more than one setting of
+this study. First, hand the building of the model to an AutoML library when
+accuracy matters (\ref{hyp:builder}). Second, prescribe only the decision the
+model would otherwise get wrong: the library choice was such a decision on
+tasks solved from scratch, and from a working script the same prescription
+cost three tasks. Third, keep advice on training time out of the prompt of a
+harness with a hard time limit. Fourth, evaluate an instruction file or a
+language model together with the harness it will run in
+(\ref{hyp:interaction}).
+
+For the three systems studied here the rules give one choice per situation.
+When a strong tuned baseline exists, use it (Section~\ref{sec:leaderboard}). For a tabular task from scratch with
+accuracy first and an hour per task acceptable, use AutoDS-Tools with its
+instruction file. For a first pass over a new scientific dataset in minutes
+per trial, use Terminus-2 with the task text alone: it beat the author
+baseline on maize and found the published featurisation on OpenPoly. Use
+FEDOT.LLM where its default ensemble fits the task, as on the classification
+tasks \texttt{ecom-offers} and F-DATA, and for tables small enough for its
+search to run.
 
 \subsection{Limitations}
 \label{sec:threats}
 
 \emph{Repeats.} Published baselines are means over fifteen seeds, and agent rows
-are means of three attempts. With eight tasks the paired tests have little
+are means of three trials. With eight tasks the paired tests have little
 power, and we report them alongside win counts and intervals.
 
 \emph{The repair loop.} AutoDS-Tools repairs failed executions more often
@@ -83,16 +91,30 @@ effect.
 
 \emph{The lost trial.} One of the 24 AutoDS-Tools trials on TabReD
 reached the one-hour limit with nothing to score and is excluded, so
-\texttt{homesite-insurance} rests on two attempts. Scoring that attempt at
+\texttt{homesite-insurance} rests on two trials. Scoring that trial at
 the weakest published value would move the normalised mean of AutoDS-Tools
 from $\nAutoDS$ to $\sensLostNorm$, still ahead of the other two
 harnesses.
 
 \emph{Data access.} Several MLAgentBench tasks use subsets of the original
 data and none an official test split, so every comparison there is
-internal. On TabReD the agents receive the labelled validation split
-(Section~\ref{sec:benchmarks}), a small advantage that works against our
-main conclusion.
+internal. On TabReD the agents receive the labelled validation split, which
+the published methods used for tuning only (Section~\ref{sec:benchmarks}).
+This works against the conclusion that the agents fall short of the
+strongest published method. It favours the agents where they match a
+published method, as AutoDS-Tools matches tuned LightGBM.
+
+\emph{Contamination.} The benchmarks, the three studies and many published
+solutions to them are public, and the language models may have seen them in
+training. The traces show the same default configuration on every TabReD
+task, which a model recalling task-specific solutions would be unlikely to
+write. This limits the effect without ruling it out.
+
+\emph{Serving.} OpenRouter sends each request to one of several providers,
+which may run the same model with different quantisation and software, and
+sampling makes repeated requests differ. Repeats within a cell absorb part of
+this variation. The two runs of one Terminus-2 configuration on two machines
+(Section~\ref{sec:abl-image}) show its size for reliability.
 
 \emph{The language model.} The language-model ablation rests on three
 models, two from
@@ -100,8 +122,9 @@ one vendor, and one task family. A stronger model that reasons less
 verbosely might not push the multi-agent system into the time limit, and
 our runs cannot separate capability from verbosity.
 
-\emph{Generality of the harnesses.} The three systems are one instance each
-of a workflow, a multi-agent system and a minimal harness. A different
-six-agent system or a different fixed-stage workflow could behave
-differently. The numbers describe these three systems, and the method of
-separating harness, instruction file and language model applies to others.
+\emph{The scheme.} The three harnesses cover three patterns of control and
+both values of the model builder (Section~\ref{sec:why-three}). Harnesses
+that search over candidate solutions and systems that retrieve external
+knowledge are outside the study, and \ref{hyp:harness} is stated without
+them. Each pattern is represented by one system, so a different six-agent
+system or fixed-stage workflow could behave differently.
