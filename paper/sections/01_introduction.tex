@@ -1,21 +1,26 @@
 \section{Introduction}
 \label{sec:intro}
 
-% Remaster, 5 October 2026.  One idea per paragraph: context, gap, what we
-% do, the three findings, contributions, outline.  Numbers are kept to the
-% minimum here; each one is reported once in Sections 5 and 6.
+% Revised 26 October 2026 after Boukhanovsky's comments.  Order: history,
+% gap, three hypotheses, contributions, test bed, outline.  The numbers
+% behind the hypotheses are in the Conclusion.
 
-Automated machine learning (AutoML) frameworks search a predefined space
-of pipelines~\citep{nikitin2022fedot,gijsbers2024amlb}. An agent built on a
-large language model (LLM) works differently: it plans experiments, writes
-and repairs code, reads execution logs and revises its own solution. Such an
-agentic AutoML system has three parts that can be varied independently. The
-first is the \emph{language model}. The \emph{harness} is the code
-around the model: its tools, control flow, memory and prompts (the 2024--2025
-literature calls it a scaffold~\citep{chan2025mlebench,hu2026beyondmodel}).
-The \emph{instruction file} holds the standing instructions that
-practitioners add to tell the agent which libraries to use and how to work.
-Such files are now packaged as agent skills~\citep{li2026skillsbench}.
+Attempts to automate the work of a data scientist go back fifty years.
+Rice stated the algorithm selection problem in 1976: choose, for a given
+dataset, the algorithm that performs best on it~\citep{rice1976algorithm}.
+AutoML frameworks of the last decade solve a wider version of this problem.
+They search a predefined space of pipelines and hyperparameters under a time
+budget~\citep{thornton2013autoweka,feurer2015autosklearn,nikitin2022fedot,gijsbers2024amlb}.
+Agents built on a large language model (LLM) are the latest step. They plan
+experiments, write and repair code, read execution logs and revise their own
+solution~\citep{trirat2025automlagent,guo2024dsagent,chan2025mlebench}. Their
+search space is open, and their behaviour depends on three parts specific to
+agents. The \emph{language model} makes the decisions. The \emph{harness} is
+the code around the model: its tools, control flow, memory and prompts, also
+called a scaffold~\citep{chan2025mlebench,hu2026beyondmodel}. The
+\emph{instruction file} holds the standing instructions that practitioners
+add to tell the agent which libraries to use and how to work. Such files are
+now packaged as agent skills~\citep{li2026skillsbench}.
 
 How much each of the three parts contributes to accuracy is not known. A
 typical paper in the area introduces one system and reports an improvement
@@ -31,80 +36,71 @@ practitioner would use: gradient boosting with tuned hyperparameters. In
 the closest study the reference is an untuned gradient-boosting
 model~\citep{tsymbalov2026graceds}.
 
-This paper measures the three parts separately. We use one open-weight
-model with 31 billion parameters (31B), gemma-4-31b-it, as the
-language model of every system. We run three harnesses that represent distinct
-designs of agentic AutoML (Figure~\ref{fig:systems}). \textbf{FEDOT.LLM} is a
-workflow with four fixed stages in which the model configures the FEDOT
-AutoML library. \textbf{AutoDS-Tools} is a system of six specialised agents
-that communicate through written reports. \textbf{Terminus-2} is the
-minimal single-agent harness of
-Terminal-Bench~\citep{merrill2026terminalbench}, which gives the model a
-shell and an execution loop. AutoDS-Tools comes with an expert instruction
-file of about 5\,000 characters that names the library to use and prescribes
-a training discipline. We switch this file on and off, split it into its two
-parts and give it to Terminus-2. We also replace the language model with a
-smaller and with a larger one. Every configuration runs in the Harbor
-framework~\citep{harbor2026}, which records each attempt, error, token and
-second. Accuracy is measured on the eight real-world tabular tasks of
-TabReD~\citep{rubachev2024tabred}, which use temporal splits, against the
-eighteen hyperparameter-tuned reference methods published with the
-benchmark. Scores are normalised per task so that 0 is the weakest and 1 the
-strongest published method. Two further settings change the starting point:
-MLAgentBench~\citep{huang2024mlagentbench}, where each task begins with a
-working script, and three tasks built from published scientific studies.
-
-Three findings organise the paper.
+Three hypotheses about the sources of accuracy and reliability, H1 to H3,
+frame the problem. They apply to any agentic AutoML system, and
+Section~\ref{sec:scheme} states them in terms of a general scheme of such
+systems (Figure~\ref{fig:scheme}).
 \begin{enumerate}
+\renewcommand{\labelenumi}{\textbf{H\arabic{enumi}.}}
+\renewcommand{\theenumi}{H\arabic{enumi}}
 \setlength{\itemsep}{1pt}
-\item \textbf{The harness alone does not decide accuracy.} Without the
-  instruction file the mean normalised scores of the three harnesses are
-  close, and no pairwise difference between them is significant over the
-  eight tasks. The harness decides reliability, wall-clock time and the set
-  of tasks a system can attempt.
-\item \textbf{Accuracy follows who builds and tunes the model.} Left to
-  themselves, AutoDS-Tools and Terminus-2 write one gradient-boosting
-  configuration by hand and never tune it. The part of the
-  AutoDS-Tools instruction file that names the library hands the modelling to
-  LightAutoML. The file raises the normalised score from $\nAutoDSOff$ to
-  $\nAutoDS$ on all eight tasks, and that part alone is on par with tuned
-  XGBoost. FEDOT.LLM follows the same rule task by task. It is the best of
-  all methods on one classification task, where its backend starts from a
-  boosting ensemble. On the four largest regression tasks it keeps an
-  untuned random forest and ranks near last. The strongest published method, an MLP-PLR ensemble
-  at $\nBest$, is out of reach of every configuration.
+\item \textbf{The harness alone does not decide accuracy.}\label{hyp:harness}
+  A harness decides who plans, in what order the steps run and how errors
+  are repaired. The modelling decisions come from the same language model in
+  every harness. If every harness ends with the same kind of model, accuracy
+  should be close. The harness should then show in reliability, run time and
+  the range of tasks a system can take.
+\item \textbf{Accuracy follows who builds and tunes the model.}\label{hyp:builder}
+  An agent that writes its own code is likely to reproduce a common default
+  configuration. Tuning it takes a search that the agent must decide to run
+  and pay for in time. An AutoML library runs such a search by design. The
+  procedure that builds the model should therefore matter more than the
+  harness that calls it.
 \item \textbf{The instruction file and the language model change
-  reliability, and the direction depends on the harness.} Appended to
-  Terminus-2, the same file leaves accuracy unchanged, and \ktBothLost{} to
-  \ktToolLost{} of 24 trials end without a submission. Where a working script
-  is supplied, the file leaves whole tasks without a submission. A larger
-  language model removes such trials under Terminus-2 and adds them under
-  AutoDS-Tools.
+  reliability, and the direction depends on the harness.}\label{hyp:interaction}
+  An instruction file is written for one harness and assumes its control
+  flow, for example a repair loop that waits for a long fit to finish. A
+  different language model changes how much the agent reasons within the
+  same time limit. One and the same file or model can then help in one
+  harness and harm in another.
 \end{enumerate}
 
-The paper makes four contributions. The first is a controlled comparison of
-three agentic AutoML harnesses on one open language model against tuned
-reference methods, with paired statistics (Section~\ref{sec:results}). The
-second is a set of ablations of the instruction file, the container image
-and the language model, with the file split into its two parts and tested in
-two harnesses and from two starting points (Section~\ref{sec:ablations}).
-The third is a trace analysis of who builds the model and why the file fails
-outside its harness (Section~\ref{sec:mechanism}). The fourth is the release
-of all tasks, instruction files, traces and result tables.
+The paper makes four contributions. The first is a general scheme of
+agentic AutoML that separates the language model, the harness, the
+instruction file and the procedure that builds the model
+(Section~\ref{sec:scheme}). The second is an experimental design that
+separates these parts. The language model and the tasks are fixed, the
+instruction file is split into its two parts, and accuracy is read against
+tuned reference methods apart from the trials without a submission
+(Section~\ref{sec:design}). The third is a test of the three hypotheses on
+three harnesses that cover the main patterns of the scheme
+(Sections~\ref{sec:results}--\ref{sec:mechanism}). The fourth is a set of
+design rules that follow from the hypotheses
+(Section~\ref{sec:rules}). All tasks, instruction files, traces and
+result tables are released.
 
-These findings affect how agent leaderboards should be read.
-Terminal-Bench~2.0 introduces Terminus-2 as a neutral harness so that a
-leaderboard over it compares models~\citep{merrill2026terminalbench}, and
-recent work on coding agents reports that elaborate harnesses add little
-over a minimal one once the model is
-strong~\citep{brilliantov2026harness,hu2026beyondmodel}. On tabular data
-with a mid-size open model, our harness comparison agrees with that result.
-Inside AutoDS-Tools the instruction file moves the score as much as
-replacing the language model with a far larger one
-(Section~\ref{sec:abl-language-model}), so a leaderboard built around one
-harness measures its instructions as well as the model.
+We test the hypotheses with one open-weight model with 31 billion
+parameters, gemma-4-31b-it, as the language model of every system.
+FEDOT.LLM is a workflow with four fixed stages around the FEDOT AutoML
+library. AutoDS-Tools is a system of six agents that communicate through
+written reports. Terminus-2 is the minimal single-agent harness of
+Terminal-Bench~\citep{merrill2026terminalbench}, a shell with an execution
+loop (Figure~\ref{fig:systems}). The instruction file of AutoDS-Tools, about
+5\,000 characters, names the library to use and prescribes a training
+discipline. We switch it on and off, split it into these two parts and
+append it to Terminus-2. We also replace the language model with a smaller
+and a larger one. Accuracy is measured on the eight tabular tasks of TabReD
+with temporal splits, against the eighteen tuned reference methods published
+with it~\citep{rubachev2024tabred}. MLAgentBench~\citep{huang2024mlagentbench}
+and three tasks from published scientific studies change the starting point.
+All runs go through the Harbor framework~\citep{harbor2026}, which records
+each trial, error, token and second.
 
-Sections~\ref{sec:related}--\ref{sec:design} cover related work, the systems
-and the protocol. Sections~\ref{sec:results}--\ref{sec:mechanism} give the
-results, the ablations and the trace analysis. Sections~\ref{sec:discussion}
-and~\ref{sec:conclusion} discuss and conclude.
+Section~\ref{sec:related} reviews related work.
+Section~\ref{sec:scheme} describes the general scheme of agentic AutoML and
+states the hypotheses in its terms. Section~\ref{sec:systems} describes the
+three harnesses and the instruction file, and Section~\ref{sec:design} the
+experimental design. Sections~\ref{sec:results} to~\ref{sec:mechanism}
+give the results, the ablations and the trace analysis.
+Section~\ref{sec:discussion} discusses them, and
+Section~\ref{sec:conclusion} concludes.

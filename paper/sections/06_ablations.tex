@@ -9,17 +9,18 @@ Section~\ref{sec:results} compared the three harnesses. This section changes
 one factor at a time. Figure~\ref{fig:ablations} summarises every comparison
 on two measures: the difference in mean normalised score over the eight
 TabReD tasks and the difference in the share of trials that ended with a
-submission.
+submission. Each subsection changes one part of the scheme and ends with
+what the result says about \ref{hyp:harness} to \ref{hyp:interaction}.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_ablations.pdf}
-\caption{Each row compares two configurations that differ in one factor: the
-reference on the left, the changed one on the right. Accuracy is the
-difference in mean normalised score on TabReD with its 95\% bootstrap
-interval over tasks. Arrows mark intervals that run beyond the axis. Trials
-with a submission is the difference in percentage points, with the count of
-each side.}
+\caption{Each row compares two configurations that differ in one factor, the
+reference left and the changed one right. Accuracy is the difference in mean
+normalised score on TabReD, changed minus reference, with a 95\% bootstrap
+interval over tasks. Arrows mark intervals beyond the axis. Tasks won:
+reference : changed. Trials with a submission: difference in percentage
+points and each side's count.}
 \label{fig:ablations}
 \end{figure*}
 
@@ -34,6 +35,15 @@ significant. On the same image AutoDS-Tools is ahead of Terminus-2 on
 \starchAutoDSvsTerminusWins{} of 8 tasks, a small and consistent lead.
 FEDOT.LLM differs from both on single tasks in both directions.
 
+For \ref{hyp:harness} this is the cleanest test, since the file is off and
+AutoDS-Tools and Terminus-2 both write their own code. Their means are
+close, and no pairwise difference is significant. With eight tasks the test
+detects only large differences, so the result agrees with \ref{hyp:harness}
+without showing that the harnesses are equal. On the same image AutoDS-Tools
+is ahead on six of eight tasks. Both harnesses fit hand-written gradient
+boosting (Section~\ref{sec:spontaneous}), so this lead comes from details of
+the configuration that the study does not isolate.
+
 \subsection{The instruction file}
 \label{sec:abl-file}
 
@@ -45,29 +55,35 @@ instruction file. The whole file raises the mean normalised score of
 AutoDS-Tools from $\nAutoDSOff$ to $\nAutoDS$ and improves all eight tasks
 (Figure~\ref{fig:ablations}). The gain comes from the library instruction.
 Alone it gives $\nGridTool$, the level of tuned XGBoost, and the discipline
-instruction alone gives $\nGridDisc$. In the task metrics the library
-instruction gains most on \texttt{ecom-offers} ($\gridToolEcom\%$ ROC-AUC)
-and changes every other task by less than $1\%$. With the library instruction
+instruction alone gives $\nGridDisc$. In the task metrics the gain is
+concentrated on \texttt{ecom-offers}, and on three tasks the whole file
+changes the metric within the spread of trials (Table~\ref{tab:grid}). With the library instruction
 AutoDS-Tools calls LightAutoML~\citep{vakhrushev2021lightautoml} in every
 trial that left a trace. Without it the agent writes LightGBM, XGBoost or
 CatBoost by hand in every trial (Section~\ref{sec:spontaneous}). Naming the
 library lengthens the fit: the median trial takes $\gridToolMin$ minutes
 against $\gridNeitherMin$ without the file. With its file, AutoDS-Tools
 scores $\gapAgentsShip$ above Terminus-2. The file accounts for
-$\layerWorthNorm$ of this lead and the harness for $\gapAgentsOff$.
+$\layerWorthNorm$ of this lead and the harness together with the container
+image for $\gapAgentsOff$.
+
+This is the change \ref{hyp:builder} predicts. The library instruction hands
+the model to an AutoML library that searches and tunes, and it brings the
+gain. The discipline instruction changes how the agent works and leaves the
+model builder as it was, and the score with it.
 \input{tables/grid}
 
 \paragraph{Appended to Terminus-2}
 \label{sec:abl-terminus}
 To test the file in a second harness we appended the byte-identical parts to
 the Terminus-2 task statement and ran 24 trials per cell
-(Table~\ref{tab:kdiscterm}). Accuracy does not change where it can be
-measured. The number of trials that end without a submission does: it rises
-from \ktNeitherLost{} of 24 without the file to \ktBothLost{} with both
-parts, \ktDiscLost{} with the discipline instruction and \ktToolLost{}
-with the library instruction. With the file the median trial takes \ktToolMin{} to
-\ktBothMin{} minutes against \ktNeitherMin{} without it. None of these trials
-reached the time limit. In each case the
+(Table~\ref{tab:kdiscterm}). Where both cells have a submission, the file
+raises the score, most with the library instruction alone
+(Figure~\ref{fig:ablations}), in line with \ref{hyp:builder}. That estimate
+rests on the few tasks that kept a submission. The number of trials without
+one rises from \ktNeitherLost{} of 24 without the file to between
+\ktBothLost{} and \ktToolLost{} with it. With the file the trials run several
+times longer, and none reached the time limit. In each case the
 agent started a fit, saw that the terminal had stopped producing output,
 assumed that reporting was broken and marked the task complete.
 \input{tables/kdiscterm}
@@ -82,13 +98,19 @@ runs for many minutes. There the discipline text partly prevents the losses,
 since it tells the agent that a long-running job is normal. Inside
 AutoDS-Tools the same four cells lost at most one trial of 24.
 
+For \ref{hyp:interaction} this is the main evidence. AutoDS-Tools completes
+the same file almost always, because its repair loop waits for the long fit.
+The single agent of Terminus-2 reads the silent terminal as a failure and
+stops. The trimmed cell traces the losses of the discipline instruction to
+two paragraphs on training time.
+
 \paragraph{From a working script}
 \label{sec:abl-script}
 Every MLAgentBench task starts from a working script. The two AutoDS-Tools
 columns of Table~\ref{tab:mlab} switch the whole file there. On
 \texttt{clrs}, \texttt{fathomnet} and \texttt{feedback} the cell without the
-file scores in every attempt, and the cell with the file submits nothing in
-any attempt, each attempt exhausting the agent budget. Only
+file scores in every trial, and the cell with the file submits nothing in
+any trial, each trial exhausting the agent budget. Only
 \texttt{ogbn-arxiv} gains by more than the spread of either cell, and
 \texttt{amp-parkinsons} gets worse. The file replaces a decision that the
 supplied script had already made. The count of three tasks is a lower bound
@@ -97,8 +119,8 @@ of it (Section~\ref{sec:friction}). The two benchmarks differ in tasks,
 metrics and budgets as well as in starting point, so the two outcomes are
 compared without pooling.
 
-The effect of the file therefore depends on the harness and on the starting
-point: it adds accuracy in the harness it was written for, on tasks solved
+For \ref{hyp:interaction}, the effect of the file therefore depends on the
+harness and on the starting point: it adds accuracy in the harness it was written for, on tasks solved
 from scratch, and elsewhere it costs submissions.
 
 \subsection{Container image}
@@ -106,27 +128,32 @@ from scratch, and elsewhere it costs submissions.
 
 Running Terminus-2 on the enriched image built for AutoDS-Tools changes the
 mean normalised score by $\stimageDiff$, inside the spread of the harness
-across attempts. In all 24 trials the agent used none of the three libraries
+across trials. In all 24 trials the agent used none of the three libraries
 the image pre-installs and wrote gradient boosting by hand, as on the stock
 image.
+
+The image adds libraries and leaves the model builder unchanged, so by
+\ref{hyp:builder} accuracy should stay the same, as observed. Terminus-2
+without the file on the enriched image was run twice, here on a workstation
+and in the grid of Section~\ref{sec:abl-terminus} on the server. The runs
+ended with a submission in 24 and 22 of 24 trials, which shows how much
+reliability varies between two runs of one configuration.
 
 \subsection{Language model}
 \label{sec:abl-language-model}
 
 We replaced the language model under each harness and kept tasks, image and
-instructions unchanged. Accuracy moves without a consistent direction. Under
-AutoDS-Tools the smaller gemma-4-26b-a4b changes the normalised
-score by $\stautodsSmallDiff$ and glm-4.7 by $\stautodsBigDiff$.
-Under Terminus-2 the smaller model gives $\sttermSmallDiff$ and
-glm-4.7 $\sttermBigDiff$, almost all of it from one task: on
-\texttt{sberbank-housing} the stronger model replaced gradient boosting with
-a random forest and lost $46\%$ of RMSE. Reliability moves in opposite
-directions for the two harnesses. Under Terminus-2 trials without a
-submission fall from \axTerminusSmallLost{} of 24 to \axTerminusBigLost{} as
-the language model grows. Under AutoDS-Tools they are lowest at the model
-the system was built with (\axAutoDSRefLost{} of 24) and rise on both sides
-(\axAutoDSSmallLost{} and \axAutoDSBigLost{} of 24). With glm-4.7,
-\axAutoDSBigCut{} of its 24 trials reach the one-hour limit against
-\axAutoDSRefCut{} with gemma-4-31b. Under
-Terminus-2 the price of a cell of 24 trials varies \axPriceSpread$\times$
-across the three language models.
+instructions unchanged. The smaller model lowers accuracy under both
+harnesses, under AutoDS-Tools on every task. glm-4.7 has no consistent
+effect. Its largest change, under Terminus-2, comes from one task: on
+\texttt{sberbank-housing} it replaced gradient boosting with a random forest,
+and RMSE rose by $46\%$. This is \ref{hyp:builder} again: accuracy moved
+with the choice of model, which the language model makes.
+
+For \ref{hyp:interaction}, reliability moves in opposite directions under the
+two harnesses (Figure~\ref{fig:ablations}). Under Terminus-2, trials without
+a submission become fewer as the model grows. Under AutoDS-Tools they are
+fewest at the model the system was built with, and \axAutoDSBigCut{} of the
+24 glm-4.7 trials reach the one-hour limit. Under Terminus-2 the price of a
+cell of 24 trials varies \axPriceSpread$\times$ across the three language
+models.

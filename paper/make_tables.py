@@ -68,28 +68,32 @@ AGENTS = {
     # FEDOT.LLM, 23.09.2026: full configuration (best_quality preset, tuning on,
     # 1200 s backend budget, holdout validation, column types read from the task
     # schema), three attempts per task under the shared 8 cores, 16 GB and
-    # 3600 s ceiling.  Means over FEDOT_ATTEMPTS; jobs
+    # 3600 s ceiling.  Since 14.10.2026 the cell is the first three attempts per
+    # task by start time, as for the other systems; on delivery-eta and
+    # sberbank-housing one of them reached the 3600 s limit without a
+    # submission, so those two means are over two attempts.  Means over
+    # FEDOT_ATTEMPTS; jobs
     # fedot-tabred-40min-schema-20260922-141217, ...-schema5-20260922-171228,
     # ...-schema-sberbank-20260922-175429, ...-schema-delivery-20260922-224814;
     # summary runs/autods-tabred/fedot-tabred-logs/schema_final.json, report
     # result_files/FEDOT_TABRED_BUDGET_2026-09-22.md (sections 13-15).
-    "FEDOT.LLM":    [0.959719, 0.620040, 0.856865, 0.239792,
+    "FEDOT.LLM":    [0.959719, 0.620040, 0.856865, 0.242686,
                      0.486700, 0.562040, 0.166449, 1.565056],
 }
 # Agent minutes per attempt, same order as FEDOT_ATTEMPTS.
 FEDOT_MINUTES = {
     "homesite-insurance": [23.9, 24.0, 23.9], "ecom-offers": [21.6, 21.8, 22.3],
-    "homecredit-default": [31.1, 32.4, 30.8], "sberbank-housing": [20.7, 20.6, 21.0],
-    "cooking-time": [35.6, 29.4, 40.2], "delivery-eta": [56.3, 58.1, 55.1],
+    "homecredit-default": [31.1, 32.4, 30.8], "sberbank-housing": [21.0, 20.6],
+    "cooking-time": [35.6, 29.4, 40.2], "delivery-eta": [58.1, 56.3],
     "maps-routing": [39.9, 39.4, 39.5], "weather": [34.1, 40.4, 31.4],
 }
 FEDOT_ATTEMPTS = {
     "homesite-insurance": [0.9597193604640095, 0.9597193604640095, 0.9597193604640095],
     "ecom-offers":        [0.6200401065164529, 0.6200401065164529, 0.6200401065164529],
     "homecredit-default": [0.8568652403688770, 0.8568652403688770, 0.8568652403688770],
-    "sberbank-housing":   [0.2340035943377987, 0.2434141455206006, 0.2419586421037739],
+    "sberbank-housing":   [0.2419586421037739, 0.2434141455206006],
     "cooking-time":       [0.4864429206486711, 0.4861604488609324, 0.4874956445390430],
-    "delivery-eta":       [0.5620398532447416, 0.5620398532447416, 0.5620398532447416],
+    "delivery-eta":       [0.5620398532447416, 0.5620398532447416],
     "maps-routing":       [0.1664485447050930, 0.1664485447050930, 0.1664485447050930],
     "weather":            [1.5547329002094838, 1.5806360195484421, 1.5597989034287620],
 }
@@ -224,11 +228,11 @@ def table_leaderboard():
     A = L.append
     A(r"\begin{table*}[t]")
     A(r"\centering")
-    A(r"\caption{The three harnesses in the TabReD leaderboard: "
-      r"official temporal splits, metrics in raw units. Published rows are "
-      r"Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}. Agent rows are "
-      r"means over three attempts on gemma-4-31b-it.  "
-      r"Best per column in bold.}")
+    A(r"\caption{Test scores on the eight TabReD tasks in the metric of each task. "
+      r"Published rows are Optuna-tuned means over 15 seeds \citep{rubachev2024tabred}, "
+      r"agent rows are means over three trials. Bold marks the best value per task. "
+      r"The last column is the average rank among the 18 published methods and the "
+      r"three harnesses.}")
     A(r"\label{tab:leaderboard}")
     A(r"\small")
     A(r"\setlength{\tabcolsep}{3pt}")
@@ -499,7 +503,8 @@ def table_mlabhead():
     A(r"\item \texttt{identify-contrails} is counted as a tie: both cells sit at the "
       r"floor of the metric. "
       f"AutoDS-Tools takes {wins[0]} of the eight tasks and Terminus-2 {wins[1]}. "
-      r"Median trial: $6.1$ minutes for Terminus-2 against $10.9$; means $19.1$ "
+      f"Median trial: ${MLAB_MEDIAN_MIN['terminus']}$ minutes for Terminus-2 against "
+      f"${MLAB_MEDIAN_MIN['autods_nofile']}$; means $19.1$ "
       r"against $63.2$. Terminus-2 reached its agent budget once in $24$ trials, "
       r"AutoDS-Tools $13$ times in $30$.")
     A(r"\end{tablenotes}")
@@ -525,8 +530,8 @@ def table_mlab():
     by_task = {row[0]: row for row in MLAB}
     A(r"\begin{table}[t]")
     A(r"\centering")
-    A(r"\caption{MLAgentBench, eight tasks, three attempts per cell: mean over "
-      r"the attempts that submitted. A dash means no attempt submitted. Best mean "
+    A(r"\caption{MLAgentBench, eight tasks, three trials per cell: mean over "
+      r"the trials that submitted. A dash means no trial submitted. Best mean "
       r"per task in bold. On \texttt{identify-contrails} every value is near "
       r"zero.}")
     A(r"\label{tab:mlab}")
@@ -578,7 +583,7 @@ def table_cases():
     A(r"\begin{table*}[t]")
     A(r"\centering")
     A(r"\caption{Three scientific case studies, one row per system and task text. "
-      r"$n$ counts attempts that left a submission, and mean, min and max are "
+      r"$n$ counts trials that left a submission, and mean, min and max are "
       r"over those. Minutes are the median agent time per attempt. Bold: the best "
       r"system mean per case.}")
     A(r"\label{tab:cases}")
@@ -586,7 +591,7 @@ def table_cases():
     A(r"\setlength{\tabcolsep}{5pt}")
     A(r"\begin{tabular}{llllcrrrr}")
     A(r"\toprule")
-    A(r"Case & Metric & System & Text & $n$ & mean & min & max & min/attempt \\")
+    A(r"Case & Metric & System & Text & $n$ & mean & min & max & min/trial \\")
     A(r"\midrule")
     for i, (task, (label, metric, author, author_note)) in enumerate(CASE_META.items()):
         if i:
@@ -702,12 +707,14 @@ TELEMETRY = [
     # gemma-4-31b-it ($0.09 / $0.34 per million), since fedotllm calls the model
     # from inside the container and Harbor records no cost for it.  Last field:
     # the SUM of agent times over the 24 trials, concurrency 1.
-    # Since 12.10.2026 the row covers all 28 trials of the cell: the 24 scored
-    # ones (64 322 / 3 731 tokens, 47 610 s) and the four that reached the
-    # 3600 s limit without a submission (delivery-eta bBNNjor, sberbank-housing
-    # DHnjWNc, fbt9jqR, Bjj9qA3), which are counted like the AutoDS-Tools trial
-    # cut at the limit.
-    ("FEDOT.LLM", "TabReD", "schema", 28, 1, 0.008237, 75055, 4360, 62010.9),
+    # Since 14.10.2026 the row covers the 24 trials of the cell, the first three
+    # per task by start time: 22 scored and two that reached the 3600 s limit
+    # without a submission (delivery-eta bBNNjor, sberbank-housing DHnjWNc),
+    # counted like the AutoDS-Tools trial cut at the limit.  Tokens from the
+    # trial logs (fedotllm.log, "Total number of prompt/completion tokens").
+    # The later attempts delivery-eta YiuqKJP and sberbank-housing Bjj9qA3,
+    # fbt9jqR, H9dJm6W are outside the cell.
+    ("FEDOT.LLM", "TabReD", "schema", 24, 1, 0.007057, 64319, 3731, 50259.0),
     # Повторы на MLAgentBench, сентябрь 2026. У этих строк последнее поле — СУММА
     # времён отдельных испытаний, а не сквозное время задания, поэтому
     # предпоследнее поле равно 1: та же формула wall*conc/n тогда даёт среднее
@@ -759,7 +766,15 @@ GRID = {
     "weather": ("RMSE", False, 1.496830, 1.494790, 1.502959, 1.478262),
 }
 GRID_COST = {"nolayer": 0.206178, "libonly": 0.176889, "disconly": 0.228821, "full": 0.176723}
-GRID_MEDIAN_MIN = {"nolayer": 15.4, "libonly": 30.4, "disconly": 9.7, "full": 38.9}
+# Median minutes per trial, column minutes_trial of trials.csv in the data
+# repository (26.10.2026; the earlier values were 0.2 min lower, from the hub
+# timestamps).
+GRID_MEDIAN_MIN = {"nolayer": 15.6, "libonly": 30.7, "disconly": 9.9, "full": 39.1}
+# Same column: Terminus-2 without the file on the enriched image, the cell of
+# the grid that ran on the server like AutoDS-Tools (TabReD), and the two
+# MLAgentBench cells of Table 3 on its eight tasks.
+TERM_ENRICHED_MEDIAN_MIN = 2.5
+MLAB_MEDIAN_MIN = {"terminus": 6.1, "autods_nofile": 60.4}
 GRID_TRIALS = 24
 
 # Clause uptake per cell, from discipline.py over each cell's own traces.  This
@@ -788,37 +803,41 @@ def _grid_rel(task, col):
 def table_grid():
     L = []
     A = L.append
-    A(r"\begin{table*}[t]")
+    A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{The two parts of the instruction file switched on and off in "
       r"AutoDS-Tools on TabReD, 24 trials per cell. The cell without the file is "
       r"in the task's own units, the other three are relative changes against "
       r"it, positive is better.}")
     A(r"\label{tab:grid}")
-    A(r"\small")
-    A(r"\setlength{\tabcolsep}{5pt}")
-    A(r"\begin{tabular}{llrrrr}")
+    A(r"\footnotesize")
+    A(r"\setlength{\tabcolsep}{3.5pt}")
+    A(r"\begin{tabular}{lrrrr}")
     A(r"\toprule")
-    A(r" & & no file & \multicolumn{3}{c}{change against no file, \%} \\")
-    A(r"\cmidrule(l){4-6}")
-    A(r"Task & Metric & & library only & discipline only & both \\")
+    A(r" & no file & \multicolumn{3}{c}{change, \%} \\")
+    A(r"\cmidrule(l){3-5}")
+    A(r"Task & & library & discipline & both \\")
     A(r"\midrule")
     cols = [[], [], []]
+    group = None
     for task, entry in GRID.items():
         metric, _hib, base = entry[0], entry[1], entry[2]
+        if metric != group:
+            group = metric
+            A(r"\multicolumn{5}{l}{\itshape " + metric + r"} \\")
         vals = [_grid_rel(task, c) for c in (1, 2, 3)]
         for i, v in enumerate(vals):
             cols[i].append(v)
         cells = " & ".join(spct(v) for v in vals)
-        A("\\texttt{" + task + "} & " + metric + f" & {base:.4f} & {cells} \\\\")
+        A("\\texttt{" + task + "} & " + f"{base:.4f} & {cells} \\\\")
     A(r"\midrule")
-    A("mean over tasks & & & "
+    A("mean over tasks & & "
       + " & ".join(spct(sum(c) / len(c)) for c in cols) + r" \\")
-    A("tasks improved & & & "
+    A("tasks improved & & "
       + " & ".join(f"{sum(1 for v in c if v > 0)} of 8" for c in cols) + r" \\")
     A(r"\bottomrule")
     A(r"\end{tabular}")
-    A(r"\end{table*}")
+    A(r"\end{table}")
     return "\n".join(L)
 
 
@@ -899,11 +918,11 @@ def table_kdisc_term():
     A(r"\begin{table}[t]")
     A(r"\centering")
     A(r"\caption{The instruction file appended to the Terminus-2 task statement "
-      r"on TabReD, 24 trials per cell. Lost: trials that ended with no "
-      r"submission. Tasks: tasks with at least one scored trial. Steps and "
-      r"minutes are medians per trial. rel.\ \%: mean relative change against "
-      r"the cell without the file over the tasks that the cell scored. Trimmed: "
-      r"the discipline instruction without its two paragraphs on training time.}")
+      r"on TabReD, 24 trials per cell. Lost: trials without a submission. Tasks: "
+      r"tasks with a scored trial. Steps and Min: medians per trial. rel.\ \%: "
+      r"mean change against the cell without the file on the tasks the cell "
+      r"scored. Trimmed: the discipline instruction without its two paragraphs on "
+      r"training time.}")
     A(r"\label{tab:kdiscterm}")
     A(r"\footnotesize")
     A(r"\setlength{\tabcolsep}{3pt}")
@@ -994,8 +1013,8 @@ def table_cost():
       r"over trials of the trials' own cost, tokens and time. MLAB abbreviates "
       r"MLAgentBench. Bold: the lowest value in its column within a benchmark.}")
     A(r"\label{tab:cost}")
-    A(r"\scriptsize")
-    A(r"\setlength{\tabcolsep}{2.5pt}")
+    A(r"\footnotesize")
+    A(r"\setlength{\tabcolsep}{3pt}")
     A(r"\begin{tabular}{llrrrrr}")
     A(r"\toprule")
     A(r"System & Bench & $n$ & \$/tr. & In/tr. & Out/tr. & Min/tr. \\")
@@ -1012,6 +1031,17 @@ def table_cost():
              cost / n, tin // n, tout // n, wall * conc / n / 60)
             for label, bench, _jid, n, conc, cost, tin, tout, wall in TELEMETRY
             if f"{label}|{bench}" not in OLD_ROWS]
+    # AutoDS-Tools writes no token record for a trial cut by the time limit, and
+    # TELEMETRY divides its totals by all trials.  These rows are recomputed from
+    # trials.csv of the data repository (26.10.2026): cost and tokens over the
+    # trials with a record, minutes over all; MLAB over the eight tasks of the
+    # MLAgentBench table.  (label, bench): (n, n with a record, $, in, out, min)
+    RECORDED = {("AutoDS (file on)", "TabReD"): (24, 20, 0.0088, 73928, 6419, 41.2),
+                ("AutoDS (no file)", "MLAB"): (24, 17, 0.0157, 134936, 10350, 63.7),
+                ("AutoDS (file on)", "MLAB"): (24, 15, 0.0206, 180879, 12815, 72.9)}
+    rows = [(lab, bench, *RECORDED[(lab, bench)][:1], *RECORDED[(lab, bench)][2:])
+            if (lab, bench) in RECORDED else (lab, bench, n, usd, tin, tout, mins)
+            for lab, bench, n, usd, tin, tout, mins in rows]
     # the lowest value per column within a benchmark is set in bold
     best = {}
     for _lab, bench, _n, *vals in rows:
@@ -1031,6 +1061,9 @@ def table_cost():
     A(r"\begin{tablenotes}\footnotesize")
     A(r"\item FEDOT.LLM calls the model from inside its container, so its cost "
       r"is its token count at list price.")
+    A(r"\item AutoDS-Tools records no tokens for a trial cut by the time limit, so "
+      r"its cost and token columns are means over the 20, 17 and 15 trials with a "
+      r"record. MLAB rows cover the eight tasks of Table~\ref{tab:mlab}.")
     A(r"\end{tablenotes}")
     A(r"\end{table}")
     return "\n".join(L)
@@ -1450,9 +1483,9 @@ TERM_KBOTH = [None, 0.579979, 0.863972, 0.251457, None, 0.547438, 0.161918, 1.47
 # Trials that ended without a submission, per cell (of the trials run).
 LOST = {
     "autods_both": (1, 24), "autods_none": (0, 24), "autods_tool": (0, 24), "autods_disc": (0, 24),
-    # fedot: four of 28 trials reached the 3600 s limit without a submission;
-    # the two tasks were repeated until each had three scored attempts.
-    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (4, 28),
+    # fedot: the first three attempts per task by start time; two of the 24
+    # reached the 3600 s limit without a submission.
+    "term_stock": (0, 24), "term_enriched": (0, 24), "fedot": (2, 24),
     "term_none_axis": (2, 24), "term_kdisc": (13, 24), "term_kdisc_trim": (0, 24),
     "term_ktool": (21, 24), "term_kboth": (11, 24),
     "term_small": (5, 24), "term_big": (0, 24), "autods_small": (6, 24), "autods_big": (7, 24),
@@ -1815,6 +1848,10 @@ def table_numbers():
     # --- the re-run wall-clock ---------------------------------------------------------------------
     ok = sorted(m for m in RERUN_MINUTES if m < RERUN_CEILING_MIN)
     define("rerunMedianMin", f"{st.median(RERUN_MINUTES):.1f}")
+    define("mlabMedTerminus", f"{MLAB_MEDIAN_MIN['terminus']:.1f}")
+    define("mlabMedAutoDS", f"{MLAB_MEDIAN_MIN['autods_nofile']:.1f}")
+    define("termEnrichedMedMin", f"{TERM_ENRICHED_MEDIAN_MIN:.1f}")
+    define("costRatioNoFileMed", f"{GRID_MEDIAN_MIN['nolayer'] / TERM_ENRICHED_MEDIAN_MIN:.1f}")
     define("rerunMinMin", f"{min(RERUN_MINUTES):.1f}")
     define("rerunNearCeiling", str(sum(1 for m in ok if m >= RERUN_CEILING_MIN - 15)))
     define("rerunCut", str(RERUN_TIMEOUTS + RERUN_CEILING_SCORED))

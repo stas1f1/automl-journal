@@ -6,19 +6,21 @@
 
 \subsection{Factors and configurations}
 
-Five factors are varied:
+The design tests the hypotheses of Section~\ref{sec:hyp-scheme}. Each factor
+changes one part of the scheme while the others stay fixed. Five factors
+are varied:
 \begin{enumerate}
-    \item \textbf{Harness}: FEDOT.LLM, AutoDS-Tools, Terminus-2.
-    \item \textbf{Instruction file}: the library and the discipline instruction of Section~\ref{sec:file}, each on or off, crossed in a full $2\times2$ on AutoDS-Tools and on Terminus-2. For Terminus-2 the byte-identical text is appended to the task statement.
-    \item \textbf{Language model}: gemma-4-31b-it in every configuration. AutoDS-Tools and Terminus-2 are also run on a smaller model of the same family, gemma-4-26b-a4b-it, and on a larger one from another family, glm-4.7, because the Gemma family has nothing larger than 31B.
-    \item \textbf{Starting point}: from scratch, where the agent receives the task statement and the data (TabReD and the case studies), and from a working script, where it also receives a weak training script to improve (MLAgentBench).
-    \item \textbf{Container image}: the benchmark's stock image or the enriched image built for AutoDS-Tools, which adds the libraries its instruction file names. This factor is varied once, on Terminus-2.
+    \item \textbf{Harness}: control, execution loop and memory (\ref{hyp:harness}). FEDOT.LLM, AutoDS-Tools, Terminus-2.
+    \item \textbf{Instruction file}: knowledge about the procedure, whose library instruction also sets the model builder (\ref{hyp:builder} and~\ref{hyp:interaction}). The library and the discipline instruction of Section~\ref{sec:file}, each on or off, crossed in a full $2\times2$ on AutoDS-Tools and on Terminus-2. For Terminus-2 the byte-identical text is appended to the task statement.
+    \item \textbf{Language model} (\ref{hyp:interaction}): gemma-4-31b-it in every configuration. AutoDS-Tools and Terminus-2 are also run on a smaller model of the same family, gemma-4-26b-a4b-it, and on a larger one from another family, glm-4.7, because the Gemma family has nothing larger than 31B. In glm-4.7, family and size change together, so the ablation does not separate them.
+    \item \textbf{Starting point}: whether the effect of the file depends on what the agent receives (\ref{hyp:interaction}). From scratch, where the agent receives the task statement and the data (TabReD and the case studies), and from a working script, where it also receives a weak training script to improve (MLAgentBench).
+    \item \textbf{Container image}: the environment, varied once to separate its effect from that of the file. The benchmark's stock image or the enriched image built for AutoDS-Tools, which adds the libraries its instruction file names. This factor is varied once, on Terminus-2.
 \end{enumerate}
 
 Table~\ref{tab:arms} lists every configuration with its number of trials.
-Throughout, a \emph{trial} is one attempt at one task and a \emph{cell} is
-one configuration run over all tasks of a benchmark. Every cell has three
-attempts per task unless otherwise stated.
+A \emph{trial} is defined in Section~\ref{sec:outcomes}. A \emph{cell} is
+one configuration run over all tasks of a benchmark, with three trials per
+task unless otherwise stated.
 
 \begin{table*}[t]
 \centering
@@ -33,7 +35,7 @@ discipline instruction without its two paragraphs on training time.}
 \toprule
 Harness & Benchmark & Instruction file & Image & Language model & Trials & Reported in \\
 \midrule
-FEDOT.LLM    & TabReD & library built in & FEDOT image & gemma-4-31b & 28 & \S\ref{sec:leaderboard} \\
+FEDOT.LLM    & TabReD & library built in & FEDOT image & gemma-4-31b & 24 & \S\ref{sec:leaderboard} \\
 Terminus-2   & TabReD & none & stock & gemma-4-31b & 24 & \S\ref{sec:leaderboard} \\
 Terminus-2   & TabReD & none & enriched & gemma-4-31b & 24 & \S\ref{sec:abl-image} \\
 Terminus-2   & TabReD & none, library, discipline, both, discipline trimmed & enriched & gemma-4-31b & $5\times24$ & \S\ref{sec:abl-terminus} \\
@@ -66,17 +68,24 @@ Optuna~\citep{akiba2019optuna} on the validation split and averaged over
 fifteen seeds. All agents run on
 the official splits through one data adapter and are scored with the
 official metric. The agents receive the labelled validation split, which
-the published methods used for tuning only. This difference favours the
-agents. The conclusion that they fall short of the published methods is therefore
-conservative. We read every TabReD result in two ways, following the
-AutoML benchmark convention~\citep{gijsbers2024amlb}: as the average rank
-among the eighteen published methods and the agents, and as a
-\emph{normalised score}. For task $j$ with raw score $s$ the normalised score
+the published methods used for tuning only. Section~\ref{sec:threats}
+discusses how this difference affects the comparison. We read every TabReD
+result in two ways, as the AutoML benchmark does~\citep{gijsbers2024amlb}:
+as the average rank among the eighteen published methods and the agents,
+and as a score scaled between two reference results. Our reference results
+are the weakest and the strongest published methods. For task $j$ with raw score $s$ the normalised score
 is $n_j(s) = (s - w_j)/(b_j - w_j)$, where $w_j$ and $b_j$ are the weakest and
 the strongest published values on that task, so that $0$ is the weakest and
 $1$ the strongest published method. A value above $1$ or below $0$ lies
 outside the published range. We report the mean of $n_j$ over the eight
 tasks.
+
+The three outcomes of Section~\ref{sec:outcomes} are measured per
+configuration. Reliability is the share of trials with a submission.
+Accuracy on a task is the mean over its trials with a submission, and a
+trial without one is counted under reliability only. A paired comparison of
+two configurations uses the tasks on which both have a submission. Cost is
+the wall-clock time and the price of the tokens of a trial.
 
 \textbf{MLAgentBench}~\citep{huang2024mlagentbench} contributes ten tasks
 over tabular, text, vision and graph data. Each supplies a working but weak
@@ -96,9 +105,17 @@ prediction~\citep{wang2025openpoly}.
 All runs execute in the Harbor framework~\citep{harbor2026}, version 0.22.
 For every trial, Harbor records the submission, the output of the benchmark's
 own scorer, the number of agent steps and errors, wall-clock time, token
-counts and cost. Cells that are compared with each other ran on one machine
-with the same number of trials in parallel. Language models are called through
-OpenRouter using the providers' default sampling settings. For
+counts and cost. Almost every cell ran on one server with 18 CPU cores,
+96~GB of memory and no GPU, four trials at a time, or two for FEDOT.LLM and
+the AutoDS-Tools case studies. A TabReD container is limited to 8 cores and
+16~GB. Two Terminus-2 cells ran on other machines with two trials at a time:
+the stock-image cell of the main comparison on a co-author's machine and the
+enriched-image cell of Section~\ref{sec:abl-image} on a workstation.
+Wall-clock times that involve these two cells come from different hardware.
+Language models are called through OpenRouter. No job sets sampling
+parameters: Terminus-2 and AutoDS-Tools send none, so the defaults of the
+serving provider apply, and FEDOT.LLM uses the settings of its own
+configuration. The cost of a trial is the one Harbor records. For
 gemma-4-31b-it the list price was \$0.09 per million input and
 \$0.34 per million output tokens. Each trial has a one-hour limit on TabReD
 (the backend of FEDOT.LLM is given 1\,200~s of it for search) and the
@@ -114,15 +131,15 @@ instruction file.
 \label{sec:stats}
 
 Every cell was run three times per task. The relative standard deviation
-across attempts ranges from $\noiseTerminusMin\%$ to $\noiseTerminusMax\%$
+across trials ranges from $\noiseTerminusMin\%$ to $\noiseTerminusMax\%$
 for Terminus-2, is below $\noiseAutoDSMax\%$ for AutoDS-Tools, and is zero
 on \allIdentFedot{} of eight tasks for FEDOT.LLM. On several tasks the agent
-wrote the same script in two attempts and obtained a bit-identical result.
-On the normalised scale, over every choice of one attempt per task, the mean
+wrote the same script in two trials and obtained a bit-identical result.
+On the normalised scale, over every choice of one trial per task, the mean
 score of Terminus-2 ranges over $\attRangeTerminus$, that of FEDOT.LLM over
 $\attRangeFedot$ and that of AutoDS-Tools over less than $0.01$. We treat
 differences between harnesses of that size as inconclusive. On MLAgentBench
-the spread is far larger (three attempts of one cell span $\mlabOgbnOffLo$
+the spread is far larger (three trials of one cell span $\mlabOgbnOffLo$
 to $\mlabOgbnOffHi$ accuracy on \texttt{ogbn-arxiv}), so there we rely on
 cells in which a configuration produces no submission at all.
 
@@ -146,16 +163,15 @@ the repository.
 All three harnesses attempt all eight TabReD tasks. AutoDS-Tools and
 Terminus-2 attempt all ten MLAgentBench tasks. FEDOT.LLM accepts tabular
 inputs only. Two MLAgentBench tasks, \texttt{cifar10} and \texttt{imdb},
-could not be repeated on our hardware (sixteen of sixteen attempts exhausted
+could not be repeated on our hardware (sixteen of sixteen trials exhausted
 the budget on CPU training) and are omitted from every table with three
-attempts per cell. Earlier AutoDS-Tools runs on TabReD used a different data
+trials per cell. Earlier AutoDS-Tools runs on TabReD used a different data
 preparation. They are excluded from every accuracy table and used only for
 the repair-loop counts of Section~\ref{sec:friction}. The FEDOT.LLM row uses
 the system's full configuration (best-quality preset, tuning on, 1\,200~s
 backend budget) with the column types read from the task schema, which the
-two agents read from the task text. Four of its trials, one on
-\texttt{delivery-eta} and three on \texttt{sberbank-housing}, reached the
-one-hour limit without a submission. The two tasks were repeated until each
-had three scored attempts. The cell therefore has 28 trials, of which four
-count as trials without a submission.
+two agents read from the task text. Two of its 24 trials, one on
+\texttt{delivery-eta} and one on \texttt{sberbank-housing}, reached the
+one-hour limit without a submission. Later trials on these two tasks are
+not counted and are listed in the repository.
 

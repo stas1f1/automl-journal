@@ -1,71 +1,50 @@
-\section{Three harnesses and one instruction file}
+\section{The systems under test}
 \label{sec:systems}
 
-% Remaster, 3 October 2026.
+% Remaster, 3 October 2026.  Table 1 moved to Section 3 on 26 October 2026.
+\input{figures_systems}
 
-The three harnesses are three design patterns of agentic AutoML: a workflow
-with fixed stages that the model configures, a team of specialised agents,
-and a single agent in an open execution loop~\citep{anthropic2024agents}.
-Figure~\ref{fig:systems} draws them and Table~\ref{tab:designpoints} lists
-what each one fixes in advance and what it leaves to the model.
+This section describes the three harnesses of Table~\ref{tab:designpoints}
+in the parts of the scheme, and then the instruction file of AutoDS-Tools.
+Figure~\ref{fig:systems} draws them: blocks with a thin outline are fixed by
+the harness, and blocks with a thick outline are decided by the model.
 
 \subsection{FEDOT.LLM: a fixed-stage workflow}
 
 FEDOT.LLM~\citep{fedotllm} pairs an LLM agent with the FEDOT
-framework~\citep{nikitin2022fedot} in four fixed stages. Data understanding
-extracts paths, column types, target, metric and submission format.
-Configuration and code generation produce a FEDOT configuration and fill a
-code template with fixed input and output contracts. An execution loop runs
-the code in a sandbox and patches it until it succeeds or a retry cap is
-reached. Reporting saves the script, the trained pipeline and the
-predictions. Two properties are used in the later sections. The modelling tool is
-fixed by design: every task is solved with FEDOT, which starts from a default
-pipeline for the task type and, when the time budget allows, searches over
-pipelines and tunes them. The workflow accepts tabular inputs only.
+framework~\citep{nikitin2022fedot}. Control is fixed in four stages. Data
+understanding extracts paths, column types, target, metric and submission
+format. Configuration and code generation produce a FEDOT configuration and
+fill a code template. Memory is the fixed input and output contract of each
+stage. The execution loop runs the code in a sandbox and patches it until it
+succeeds or a retry cap is reached. Reporting saves the script, the trained
+pipeline and the predictions. The model builder is fixed: every task is
+solved with FEDOT, which starts from a default pipeline for the task type
+and searches over pipelines and tunes them when the time budget allows. The
+workflow accepts tabular inputs only.
 
 \subsection{AutoDS-Tools: a multi-agent system}
 
-AutoDS-Tools~\citep{autodstools} coordinates six agents through written
-reports. An Analyst explores the data, a Researcher studies the target
-library and writes usage notes, a Planner turns both into an execution plan,
-a Coder writes and refines the solution against execution results, a
-Debugger absorbs execution errors outside the main context, and a Presenter
-audits the result. Each stage writes a Markdown report that the next one
-reads. The system may use any library installed in its container and may
-restructure the solution between iterations.
+AutoDS-Tools~\citep{autodstools} coordinates six agents. Control is a plan
+generated at run time. An Analyst explores the data, a Researcher studies
+the target library and writes usage notes, and a Planner turns both into an
+execution plan. Memory is the written reports: each agent writes a Markdown
+report that the next one reads. In the execution loop a Coder refines the
+solution against execution results, a Debugger handles execution errors
+outside the main context, and a Presenter audits the result. The model
+builder is open: the system may use any library installed in its container,
+and its instruction file names one (Section~\ref{sec:file}).
 
 \subsection{Terminus-2: a minimal single-agent harness}
 
-Terminus-2 is the reference agent of Terminal-Bench~\citep{merrill2026terminalbench}.
-It gives the model one tool, a shell in a working directory, and an
-execution loop: read the task statement, inspect the data, write code, run
-it, read the output, repeat until a submission is written or the budget is
-exhausted. It prescribes nothing about how the task should be solved.
-
-\begin{table}[t]
-\centering
-\caption{What each harness fixes in advance and what it leaves to the model.
-The last two rows say where the instruction file of Section~\ref{sec:file}
-can be switched.}
-\label{tab:designpoints}
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{llll}
-\toprule
- & FEDOT.LLM & AutoDS-Tools & Terminus-2 \\
-\midrule
-Design pattern     & workflow        & multi-agent     & single agent \\
-Modelling tool     & FEDOT, fixed     & free            & free \\
-Plan               & fixed stages    & generated       & emergent \\
-Execution loop     & bounded retries & per-agent       & open \\
-Input modalities   & tabular only    & any             & any \\
-Left to the model  & configuration   & everything      & everything \\
-\midrule
-Library instruction    & built in        & on / off        & off, appendable \\
-Discipline instruction & absent          & on / off        & off, appendable \\
-\bottomrule
-\end{tabular}
-\end{table}
+Terminus-2 is the reference agent of
+Terminal-Bench~\citep{merrill2026terminalbench}. Its only action is a shell
+in a working directory. Control is left to the model, which chooses each
+step: read the task statement, inspect the data, write code, run it and read
+the output. Memory is one growing context. The execution loop is open and
+ends when a submission is written or the budget is exhausted. The model
+builder is the agent's own code, and the harness has no instruction file of
+its own.
 
 \subsection{The instruction file and its two parts}
 \label{sec:file}
@@ -91,7 +70,9 @@ On a tabular task the file is about 5$\times$ as long as the task statement,
 and the library instruction is about a quarter of it. An ablation that
 switches the whole file at once cannot tell the two parts apart.
 
-In FEDOT.LLM the library instruction is the workflow itself: every task goes
-through FEDOT. Terminus-2 has no instruction file of its own, so we test the
-file in a second harness by appending it to the task statement
-(Table~\ref{tab:designpoints}).
+In the scheme the file is knowledge about the procedure, and its library
+instruction also sets the model builder. In FEDOT.LLM the library
+instruction is the workflow itself: every task goes through FEDOT.
+Terminus-2 has no instruction file of its own, so we test the file in a
+second harness by appending it to the task statement
+(Figure~\ref{fig:systems}).

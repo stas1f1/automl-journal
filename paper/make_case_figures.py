@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Render the case-study data figure (figures/fig_cases.pdf).
+"""Render the case-study figures: the data of the three tasks
+(figures/fig_case_data.pdf) and every attempt against the author baseline
+(figures/fig_cases.pdf).
 
 Three panels, one per scientific case, drawn from the original open data so
 the reader sees what each task is about rather than a benchmark id:
@@ -64,26 +66,19 @@ def panel_maize(ax):
     g.columns = ["env", "Year", "Set", "med", "q1", "q3", "n"]
     g = g.sort_values(["Year", "med"]).reset_index(drop=True)
     x = np.arange(len(g))
-    for s, col, z in (("Train", TRAIN_C, 1), ("Test", TEST_C, 2)):
+    for s, col, lab, z in (("Train", TRAIN_C, "Training", 1), ("Test", TEST_C, "Held out", 2)):
         sel = g.Set == s
-        ax.vlines(x[sel], g.q1[sel], g.q3[sel], color=col, lw=0.8, zorder=z, alpha=0.9)
-        ax.scatter(x[sel], g.med[sel], s=6, color=col, zorder=z + 1, lw=0)
-    # year bands
-    for y, grp in g.groupby("Year"):
-        lo, hi = grp.index.min(), grp.index.max()
-        ax.text((lo + hi) / 2, 8, str(y), ha="center", va="bottom", fontsize=6, color=MUTED)
-        if lo > 0:
-            ax.axvline(lo - 0.5, color=GRID_C, lw=0.6)
+        ax.vlines(x[sel], g.q1[sel], g.q3[sel], color=col, lw=0.6, zorder=z)
+        ax.scatter(x[sel], g.med[sel], s=5, color=col, zorder=z + 1, lw=0, label=lab)
+    years = g.reset_index().groupby("Year")["index"].agg(lambda s: (s.min() + s.max()) / 2)
+    ax.set_xticks(years.values)
+    ax.set_xticklabels([str(y) for y in years.index])
+    ax.tick_params(axis="x", length=0)
     ax.set_xlim(-1, len(g))
     ax.set_ylim(0, 320)
-    ax.set_xticks([])
-    ax.set_ylabel("grain yield of field plots, bu/acre")
-    ax.set_xlabel(f"one mark = one site in one year ({len(g)} in all)", fontsize=6.5)
-    ax.grid(axis="y")
+    ax.set_ylabel("Yield (bu/acre)")
     ax.set_title("Maize yield in unseen fields", **PANEL)
-    ax.scatter([], [], s=10, color=TRAIN_C, label=f"sites used for training")
-    ax.scatter([], [], s=10, color=TEST_C, label=f"sites to predict (held out)")
-    ax.legend(loc="upper left", handletextpad=0.3)
+    ax.legend(loc="upper left", handletextpad=0.2, markerscale=1.6)
 
 
 # ---------------------------------------------------------------- F-DATA
@@ -96,24 +91,21 @@ def panel_fdata(ax):
     g = f.groupby("bin", observed=True)["ok"].agg(["mean", "size"]).reset_index()
     x = np.arange(len(g))
     majority = f.ok.mean()
-    ax.bar(x, 100 * g["mean"], width=0.72, color=ACCENT, lw=0, zorder=2)
+    # dots: the axis starts at 60%, and a bar would have to start at zero
+    ax.scatter(x, 100 * g["mean"], s=14, color=ACCENT, lw=0, zorder=2)
     ax.axhline(100 * majority, color=TEST_C, lw=0.9, ls="--", zorder=3)
-    ax.text(len(g) - 0.4, 100 * majority - 0.8, f"{100*majority:.1f}%: always guess \"success\"",
-            ha="right", va="top", fontsize=6, color=TEST_C,
+    ax.text(len(g) - 0.4, 100 * majority - 0.8, f"Constant \u201csuccess\u201d {100*majority:.1f}%",
+            ha="right", va="top", fontsize=6, color=TEST_C, zorder=4,
             bbox=dict(boxstyle="square,pad=0.15", fc="white", ec="none", alpha=0.85))
-    for xi, (mean, n) in enumerate(zip(g["mean"], g["size"])):
-        ax.text(xi, 62, f"{n/1000:.0f}k" if n >= 1000 else str(n), ha="center", va="bottom",
-                fontsize=5, color="white", rotation=90)
     labels = ["1", "2", "3-4", "5-8", "9-16", "17-32", "33-64", "65-128", "129-256",
               "257-512", "513-1k", "1k-4k", ">4k"]
     ax.set_xticks(x)
-    ax.set_xticklabels(labels[:len(g)], rotation=60, ha="right", fontsize=5)
+    ax.set_xticklabels(labels[:len(g)], rotation=45, ha="right", fontsize=6)
     ax.set_ylim(60, 100)
     ax.set_xlim(-0.6, len(g) - 0.4)
-    ax.set_ylabel("jobs that finished successfully, %")
-    ax.set_xlabel("compute nodes requested (job count in bar)", fontsize=6.5, labelpad=1)
-    ax.grid(axis="y")
-    ax.set_title("Fugaku jobs: will this job fail?", **PANEL)
+    ax.set_ylabel("Successful jobs (%)")
+    ax.set_xlabel("Requested nodes", labelpad=1)
+    ax.set_title("Will a supercomputer job fail?", **PANEL)
 
 
 # ---------------------------------------------------------------- OpenPoly
@@ -136,58 +128,49 @@ def panel_openpoly(ax):
     o = o.dropna()
     rng = np.random.default_rng(0)
     jitter = rng.uniform(-0.012, 0.012, len(o))
-    ax.scatter(o.arom + jitter, o["Tg (K)"], s=7, color=ACCENT, alpha=0.55, lw=0, zorder=2,
-               label=f"one dot = one polymer ({len(o)})")
-    # trend by bins
+    ax.scatter(o.arom + jitter, o["Tg (K)"], s=6, color=ACCENT, alpha=0.5, lw=0, zorder=2)
     bins = pd.cut(o.arom, [-0.01, 0.001, 0.35, 0.6, 1.0])
     grp = o.groupby(bins, observed=True)
     med, cen = grp["Tg (K)"].median(), grp["arom"].mean()
     ax.plot(cen.values, med.values, color=TEST_C, lw=1.2, marker="o", ms=3, zorder=3,
-            label="typical value (median)")
-    ax.set_xlabel("share of ring atoms in the repeat unit", fontsize=6.5)
-    ax.set_ylabel("$T_g$: where the plastic softens, K")
+            label="Median")
+    ax.set_xlabel("Aromatic-atom fraction")
+    ax.set_ylabel("$T_g$ (K)")
     ax.set_xlim(-0.04, 1.04)
-    ax.grid(axis="y")
-    ax.set_title("Polymers: softening point", **PANEL)
-    ax.text(0.0, 128, "flexible chains", ha="left", va="bottom", fontsize=6, color=MUTED)
-    ax.text(1.0, 128, "rigid chains", ha="right", va="bottom", fontsize=6, color=MUTED)
     ax.set_ylim(120, 610)
-    ax.legend(loc="upper left", handletextpad=0.3)
+    ax.set_title("Polymer glass transition", **PANEL)
+    ax.legend(loc="upper left", handletextpad=0.4)
 
 
 # ---------------------------------------------------------------- results
 import make_tables as mt  # noqa: E402
 
 RES_ROWS = [  # (label, system, text) from top to bottom
-    ("AutoDS-Tools, with library section", "AutoDS-Tools", "prescribed"),
-    ("Terminus-2, with library section", "Terminus-2", "prescribed"),
+    ("AutoDS-Tools, library section", "AutoDS-Tools", "prescribed"),
+    ("Terminus-2, library section", "Terminus-2", "prescribed"),
     ("Terminus-2, plain text", "Terminus-2", "plain"),
     ("FEDOT.LLM, plain text", "FEDOT.LLM", "plain"),
 ]
 RES_META = {
-    "maize-yield": ("Pearson $r$ (higher is better)", (0.40, 0.72)),
-    "fdata-exit": ("accuracy (higher is better)", (0.875, 0.965)),
-    "openpoly-tg": ("$R^2$ (higher is better)", (0.40, 0.95)),
+    "maize-yield": ("Maize", "Pearson $r$ (higher is better)", (0.40, 0.72)),
+    "fdata-exit": ("F-DATA", "Accuracy (higher is better)", (0.875, 0.965)),
+    "openpoly-tg": ("OpenPoly", "$R^2$ (higher is better)", (0.40, 0.95)),
 }
 MARK = {"AutoDS-Tools": "D", "Terminus-2": "o", "FEDOT.LLM": "s"}
 
 
 def panel_results(ax, task, first):
-    label, (lo, hi) = RES_META[task]
+    title, label, (lo, hi) = RES_META[task]
     author = mt.CASE_META[task][2]
     n = len(RES_ROWS)
     ax.set_ylim(n - 0.5, -0.5)
     ax.set_xlim(lo, hi)
     ax.axvline(author, color=INK, lw=0.9, ls="--", zorder=2)
-    ax.text(author, -0.45, f"authors {author:.3f}", ha="center", va="bottom", fontsize=6, color=INK)
-    if task == "fdata-exit":
-        floor = mt.CASE_FLOORS[task]
-        ax.axvline(floor, color=MUTED, lw=0.7, ls=":", zorder=1)
-        ax.text(floor, n - 0.55, "constant", ha="center", va="top", fontsize=5.5, color=MUTED)
+    ax.text(author, -0.55, f"Authors: {author:.3f}", ha="center", va="bottom", fontsize=6, color=INK)
     for i, (lab, system, text) in enumerate(RES_ROWS):
         key = (task, system, text)
         if key not in mt.CASES:
-            ax.text((lo + hi) / 2, i, "not applicable", ha="center", va="center", fontsize=6, color=MUTED)
+            ax.text((lo + hi) / 2, i, "not run", ha="center", va="center", fontsize=6, color=MUTED)
             continue
         vals, _mins = mt.CASES[key]
         col = C[system]
@@ -195,34 +178,40 @@ def panel_results(ax, task, first):
         lost = len(vals) - len(got)
         rng = np.random.default_rng(1)
         for v in got:
-            ax.scatter([v], [i + rng.uniform(-0.12, 0.12)], s=22, marker=MARK[system], color=col,
-                       zorder=4, edgecolor="white", linewidth=0.5)
+            ax.scatter([v], [i + rng.uniform(-0.1, 0.1)], s=20, marker=MARK[system], color=col,
+                       zorder=4, edgecolor="white", linewidth=0.4)
         if lost:
-            xs = np.linspace(lo + 0.04 * (hi - lo), lo + 0.04 * (hi - lo) + 0.05 * (hi - lo) * (lost - 1), lost)
-            ax.scatter(xs, [i] * lost, s=24, marker="x", color=col, linewidth=1.1, zorder=4)
+            x0, step = lo + 0.04 * (hi - lo), 0.05 * (hi - lo)
+            ax.scatter([x0 + k * step for k in range(lost)], [i] * lost, s=20, marker="x",
+                       color=MUTED, linewidth=1.0, zorder=4)
     ax.set_yticks(range(n))
-    ax.set_yticklabels([r[0] for r in RES_ROWS] if first else [""] * n, fontsize=6)
+    ax.set_yticklabels([r[0] for r in RES_ROWS] if first else [""] * n)
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
-    ax.grid(axis="x")
-    ax.set_xlabel(label, fontsize=6.5)
+    ax.grid(False)
+    ax.set_xlabel(label)
+    ax.set_title(title, pad=11, **PANEL)
+
+
+def fig_case_data():
+    fig, axes = plt.subplots(1, 3, figsize=(FULL_W, 2.05),
+                             gridspec_kw=dict(wspace=0.38, left=0.07, right=0.99, top=0.9, bottom=0.2))
+    for ax in axes:
+        ax.grid(False)
+    panel_maize(axes[0]); panel_fdata(axes[1]); panel_openpoly(axes[2])
+    save(fig, "fig_case_data")
 
 
 def fig_cases():
-    fig = plt.figure(figsize=(FULL_W, 3.7))
-    gs_top = fig.add_gridspec(1, 3, left=0.075, right=0.99, top=0.95, bottom=0.52, wspace=0.40)
-    gs_bot = fig.add_gridspec(1, 3, left=0.20, right=0.99, top=0.27, bottom=0.085, wspace=0.22)
-    top = [fig.add_subplot(gs_top[0, k]) for k in range(3)]
-    panel_maize(top[0]); panel_fdata(top[1]); panel_openpoly(top[2])
-    bottom = [fig.add_subplot(gs_bot[0, k]) for k in range(3)]
+    fig, axes = plt.subplots(1, 3, figsize=(FULL_W, 1.45),
+                             gridspec_kw=dict(wspace=0.18, left=0.2, right=0.99, top=0.8, bottom=0.27))
     for k, task in enumerate(["maize-yield", "fdata-exit", "openpoly-tg"]):
-        panel_results(bottom[k], task, first=(k == 0))
-    fig.text(0.075, 0.955, "a", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
-    fig.text(0.02, 0.305, "b", ha="left", va="bottom", fontsize=8.5, fontweight="bold")
-    fig.text(0.04, 0.305, "Every attempt against the author baseline (dashed). Cross: no submission",
-             ha="left", va="bottom", fontsize=6.5)
+        panel_results(axes[k], task, first=(k == 0))
+    axes[0].scatter([], [], marker="x", s=20, color=MUTED, linewidth=1.0, label="No submission")
+    axes[0].legend(loc="lower left", bbox_to_anchor=(-0.62, 1.02), handletextpad=0.2, frameon=False)
     save(fig, "fig_cases")
 
 
 if __name__ == "__main__":
+    fig_case_data()
     fig_cases()

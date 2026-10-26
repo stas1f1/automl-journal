@@ -1,0 +1,189 @@
+\section{A general scheme of agentic AutoML}
+\label{sec:scheme}
+
+% Added 26 October 2026 after Boukhanovsky's comment 7: the general part
+% before the harnesses.  The published systems in Table 1 were checked
+% against their papers (arXiv versions: AutoKaggle v3, DS-Agent v5,
+% R&D-Agent v2, KompeteAI v3).
+
+This section describes an agentic AutoML system in general terms. It
+defines the outcomes of a trial, names the parts of a system and the
+role of each, and places published systems in one design space. The three
+hypotheses are then stated as claims about these parts.
+
+\subsection{A trial and its outcomes}
+\label{sec:outcomes}
+
+A task consists of training data, a description, a metric and a time
+budget. A trial is one run of a system on one task. It ends with a
+submission, a set of predictions for the test data, or with nothing when the
+system stops or runs out of time. Three outcomes describe a trial.
+\emph{Reliability} is the share of trials that end with a submission.
+\emph{Accuracy} is the test score of a submission and is measured only
+where one exists. \emph{Cost} is the wall-clock time and the tokens an
+trial consumes. A system can gain in one outcome and lose in another, so
+the paper reports the three separately.
+
+\subsection{The parts of a system}
+\label{sec:parts}
+
+A data scientist works in a loop: explore the data, plan, write code, run
+it, read the result and repeat until a submission is ready. An agentic
+AutoML system splits this loop among five parts
+(Figure~\ref{fig:scheme}).
+
+The \emph{language model} chooses the next action from what it has seen so
+far. It is needed because the space of solutions is open: any code the
+model can write is a candidate, and no grid of pipelines is fixed in
+advance.
+
+The \emph{harness} turns the choices of the model into work. Each of its
+four components answers one limit of a language model.
+\begin{itemize}
+\setlength{\itemsep}{1pt}
+\item \emph{Actions} let the text of the model run: a shell, code
+  execution, calls to a library.
+\item \emph{Control} sets who plans. Designers fix the stages in advance,
+  an agent writes a plan at run time, or a single agent chooses each step
+  as it goes. A task of an hour takes many model calls, and control orders
+  them.
+\item The \emph{execution loop} returns the output and the errors of the
+  code to the model. Generated code often fails on the first run, and the
+  loop decides how many repairs follow and who makes them.
+\item \emph{Memory} sets what passes from one step to the next: one growing
+  context, written reports between agents, or fixed input and output
+  contracts. The context of a model is finite, and memory decides what
+  stays in it.
+\end{itemize}
+
+\emph{Knowledge about the procedure} tells the model which tools to use and
+how to work. It comes from the parametric memory of the model, from
+retrieved earlier solutions~\citep{guo2024dsagent,kulibaba2025kompeteai},
+from library documentation built into the system~\citep{fang2025mlzero} or
+from an instruction file written by experts.
+
+The \emph{model builder} fits the final model. The agent can write the
+model in its own code, or call an AutoML library as a tool and let it
+search and tune. This part joins agentic AutoML with the AutoML frameworks
+of Section~\ref{sec:intro}.
+
+The \emph{environment} is the container with its libraries, the hardware
+and the time limit of a trial. It sets which tools exist and how long a
+fit may run.
+
+\subsection{Published systems in the scheme}
+\label{sec:space}
+
+Table~\ref{tab:designpoints} places eight published systems and the three
+harnesses of this study in the scheme. The published systems are described
+from their papers. Their scores are not compared with ours: they were
+obtained with other language models, such as GPT-4o in AutoKaggle and
+AutoML-Agent, Claude~3.7 Sonnet in MLZero and GPT-5 and o3 in R\&D-Agent,
+and on other benchmarks.
+
+The table shows that the parts vary independently in practice. AutoKaggle
+and DS-Agent both fix the stages. The first fits models through its own
+tool library, and the second writes the model in its own code. Six of the
+eight systems write the model themselves, and MLZero and LightAutoDS-Tab
+can call an AutoML library. Four systems retrieve external knowledge, and
+LightAutoDS-Tab and AutoKaggle also use text written by people. Two systems
+that share one pattern of control can therefore differ in every other part,
+and a comparison of complete systems changes several parts at once.
+
+\begin{table*}[t]
+\centering
+\caption{Published agentic AutoML systems and the three harnesses of this
+study on the parts of the scheme. Published systems are described from
+their papers.}
+\label{tab:designpoints}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.1}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\begin{tabular}{@{}L{2.3cm}L{2.6cm}L{0.9cm}L{2.2cm}L{2.3cm}L{2.4cm}L{2.3cm}L{1.6cm}@{}}
+\toprule
+System & Control & Agents & Memory & Execution loop & Model builder & Knowledge & Inputs \\
+\midrule
+\rowcolor{stripe}AutoKaggle~\citep{li2024autokaggle} & fixed phases, LLM plan within each & 5 & reports & bounded debugging, unit tests & tool library on scikit-learn, own code & tool documentation, rules by people & tabular \\
+DS-Agent~\citep{guo2024dsagent} & fixed loop, LLM plan per step & roles & experiment log & bounded debugging & own code & Kaggle case bank & text, time series, tabular \\
+\rowcolor{stripe}AutoML-Agent~\citep{trirat2025automlagent} & plans generated by an LLM & 5 & JSON contract, code skeleton & verification and revision & own code & web, arXiv, dataset search & five modalities \\
+MLZero~\citep{fang2025mlzero} & fixed modules & 9 & context, error summaries & bounded retries & AutoGluon or own code & library tutorials & several \\
+\rowcolor{stripe}LightAutoDS-Tab~\citep{lapin2025lightautods} & router, LLM plan on a code skeleton & 7 & messages, code template & improvement loop & own code, LightAutoML or FEDOT & prompts by designers & tabular \\
+R\&D-Agent~\citep{yang2025rdagent} & search over candidates & 2 & exploration graph & many candidates, selection & own code & none & several \\
+\rowcolor{stripe}KompeteAI~\citep{kulibaba2025kompeteai} & tree search over fixed stages & 8 & solution tree & many candidates, pruning & own code & Kaggle and arXiv retrieval & not stated \\
+AIRA~\citep{toledo2025aira} & search policy & 1 & search graph & many candidates, selection & own code & none & not stated \\
+\midrule
+\multicolumn{8}{@{}l}{\emph{The three harnesses of this study}} \\
+\rowcolor{stripe}FEDOT.LLM & fixed stages & 1 & fixed contracts & bounded retries & FEDOT, fixed & library built in & tabular \\
+AutoDS-Tools & plan generated by agents & 6 & written reports & per-agent debugging & own code, or LightAutoML when the file names it & instruction file, on or off & any \\
+\rowcolor{stripe}Terminus-2 & step by step & 1 & one growing context & open loop & own code & none, file appended in an ablation & any \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{The hypotheses in terms of the scheme}
+\label{sec:hyp-scheme}
+
+\ref{hyp:harness} concerns the harness. With the language model,
+the knowledge and the model builder fixed, control, the execution loop and
+memory decide how a trial proceeds. They should change reliability and
+cost. The final model comes from the same language model, so accuracy
+should change little. The hypothesis is stated for harnesses that do not
+search over candidate solutions, for the reason given in
+Section~\ref{sec:why-three}.
+
+\ref{hyp:builder} concerns the model builder. The agent's own
+code and an AutoML library differ in whether a search over models and
+hyperparameters is run, so the model builder should decide accuracy. A
+harness that fixes a library and an instruction that names one both act
+through this part.
+
+\ref{hyp:interaction} concerns knowledge and the language model.
+An instruction assumes a control flow and an execution loop, and a language
+model fills the time limit at its own pace. Their effect on reliability
+should therefore depend on the harness and the time limit, and can change
+sign from one harness to another.
+
+Each hypothesis is a claim about parts of the scheme and outcomes of an
+trial, so it can be tested on any system placed in it.
+
+\subsection{Why three harnesses}
+\label{sec:why-three}
+
+The test needs harnesses that differ on the parts of the scheme while the
+language model, the knowledge and the environment stay fixed. The study
+therefore compares parts of systems, and each pattern is represented by one
+harness. The three harnesses run in one framework,
+Harbor~\citep{harbor2026}, with the same language model, and AutoDS-Tools
+has an instruction file that can be switched part by part. Running the
+published systems as their papers describe them would change the language
+model, the knowledge and the protocol together, the confound described in
+Section~\ref{sec:intro}.
+
+On control the three harnesses take three values of
+Table~\ref{tab:designpoints}: fixed stages in FEDOT.LLM, a plan generated
+by agents in AutoDS-Tools and step-by-step choice in Terminus-2. These
+follow the division of LLM systems into workflows, multi-agent systems and
+autonomous agents~\citep{anthropic2024agents}. On memory they take fixed
+contracts, written reports and one growing context. On the model builder
+they take a fixed library, a library named by the instruction file and the
+agent's own code.
+
+Five of the eight published systems fix the stages or let agents generate a
+plan, as FEDOT.LLM and AutoDS-Tools do. The other three search over many
+candidate solutions and keep the best on
+validation~\citep{yang2025rdagent,kulibaba2025kompeteai,toledo2025aira}.
+Such a harness runs the search that \ref{hyp:builder} attributes
+to the model builder, so \ref{hyp:harness} is stated and tested
+for harnesses without it. On the model builder the published systems take
+the two values our harnesses take: their own code, or an AutoML library in
+MLZero and LightAutoDS-Tab. Retrieval of external knowledge, used by four
+systems, lies outside the study.
+
+FEDOT.LLM fixes the model builder to the FEDOT library. Without the
+instruction file, \ref{hyp:harness} is therefore tested cleanly
+on AutoDS-Tools and Terminus-2, which both write their own code. FEDOT.LLM
+enters the same comparison with a different model builder. FEDOT runs its
+search only when fitting the default pipeline leaves time, so
+\ref{hyp:builder} predicts that FEDOT.LLM gains on the tasks
+where the search runs.
