@@ -138,7 +138,7 @@ hw = (hx1 - hx0 - 3 * 2) / 4
 box(CX0 + 2.5, 43.5, CX1 - CX0 - 5, 19.5, fc="none", ec=OUTLINE, lw=0.6, z=1.5)
 text(hx0, 60.6, "harness", size=7.5, bold=True, ha="left")
 parts = [("actions", "shell, code,\nlibrary calls"),
-         ("control", "who sets\nthe plan"),
+         ("control", "who builds\nthe workflow"),
          ("execution loop", "output and errors\nback to the model"),
          ("memory", "what passes\nbetween steps")]
 for i, (n_, note) in enumerate(parts):
@@ -187,7 +187,7 @@ text(sx + sw / 2, sy + sh / 2, "submission", size=7)
 polyline([(bx + bw, 28.5), (144, 28.5), (144, 51), (sx, 51)])
 text(sx + sw / 2 + 0.9, sy - 4.6, "or none", size=7, color=TEXT2)
 
-outs = [("reliability", "share of attempts\nwith a submission"),
+outs = [("reliability", "share of trials\nwith a submission"),
         ("accuracy", "score of a submission"),
         ("cost", "time and tokens")]
 oy = 34
