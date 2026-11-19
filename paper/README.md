@@ -1,11 +1,19 @@
-# Черновик статьи в FGCS
+# Черновик статьи в Knowledge-Based Systems
 
-**Harness, Instruction File or Backbone: Where the Accuracy of LLM-Agent AutoML
-Comes From**
+**Where to Put Knowledge in Agentic AutoML: Language Model, Harness, AutoML
+Library or Instruction File**
 
-(до 3 октября 2026: «Architecture over Parameters: How Far Agentic Design
-Patterns Carry a Weak Model in Automated Machine Learning»; эта редакция
-сохранена в ветке `archive-02-10`)
+Ветка `kbs`. Редакция для FGCS лежит в ветке `main`.
+
+Прежние заголовки:
+
+- редакция для FGCS в ветке `main`: «Architecture over Parameters: How Far
+  Agentic Design Patterns Carry a Weak Model in Automated Machine Learning».
+  Он же стоял до 3 октября 2026, эта редакция сохранена в ветке
+  `archive-02-10`;
+- с 3 октября 2026 до синхронизации с Overleaf от 12 октября 2026: «Harness,
+  Instruction File or Backbone: Where the Accuracy of LLM-Agent AutoML Comes
+  From». В `main.tex` он остался закомментированным.
 
 ## Сборка
 
@@ -16,8 +24,42 @@ python3 make_figures.py    # рисунки figures/fig_*.pdf из тех же �
 latexmk -pdf main.tex
 ```
 
-`elsarticle.cls` и `.bst` взяты с CTAN и лежат рядом, потому что в системном
-texlive их не было. Всё остальное стандартное.
+С 19 ноября 2026 статья собирается в шаблоне Elsevier CAS (`cas-dc`, две
+колонки), взятом по ссылке из руководства KBS: `cas-dc.cls`, `cas-sc.cls`,
+`cas-common.sty` и папка `thumbnails/` лежат рядом. Для одной колонки в
+`main.tex` заменить `cas-dc` на `cas-sc`. Список литературы оформляет
+`elsarticle-num.bst`: номера идут в порядке первого упоминания, как просит
+журнал. Текст аннотации стоит прямо в `main.tex`, потому что окружение
+`abstract` этого класса читать файл через `\input` не умеет. Прежняя шапка под
+`elsarticle` сохранена в `main.tex.bak-elsarticle`.
+
+## Состояние на 19 ноября 2026 (ветка `kbs`)
+
+FGCS отклонил статью без рецензии как не подходящую по тематике. Текст
+переписан для Knowledge-Based Systems, опыты и числа прежние. Что изменено:
+
+- Ось текста: четыре места, где система хранит знание о построении модели.
+  Это параметрическое знание в языковой модели, знание проектировщиков в
+  каркасе, знание о поиске и настройке в AutoML-библиотеке и явное знание в
+  тексте, который получает модель (файл инструкций).
+- В разделе 3.2 дано определение знания о процедуре и два способа его
+  хранения: утверждение в весах или тексте и исполняемая процедура в коде.
+  Часть схемы и столбец табл. 1 называются «Explicit knowledge».
+- H2: «Accuracy follows the part that holds and applies the knowledge of
+  search and tuning». H3: «Explicit knowledge and the language model change
+  reliability, and the direction depends on the harness». H1 без изменений.
+- Правила проектирования в 8.2 говорят, куда класть знание.
+- В обзоре новый абзац «Knowledge in AutoML systems», в `refs.bib` семь новых
+  записей, четыре из них из KBS.
+- Новые заголовок, Highlights, ключевые слова и аннотация (245 слов).
+- Сопроводительное письмо: `cover_letter_kbs.md`.
+- Сборка в шаблоне CAS: 20 страниц PDF (Highlights плюс 19), без
+  предупреждений о ссылках. Ключевых слов семь, заливка в табл. 1 убрана.
+
+До подачи остаётся: сверить лимиты KBS на аннотацию, ключевые слова и
+Highlights (в `guide-for-authors_files` лежит руководство FGCS), сверить
+описание системы Bâra et al. в разделе 2 по тексту статьи, закрыть два TODO
+в `main.tex` (аффилиации соавторов, строка, скрывающая Highlights).
 
 ## Состояние на 3 октября 2026 (ветка `remaster`)
 

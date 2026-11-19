@@ -145,8 +145,8 @@ for i, (n_, note) in enumerate(parts):
     named(hx0 + i * (hw + 2), hy, hw, hh, n_, note, size=7.5)
 
 # language model, decides
-lx, ly, lw_, lh = 66, 25, 48, 10
-named(lx, ly, lw_, lh, "language model", "chooses the next action", thick=True)
+lx, ly, lw_, lh = 66, 24, 48, 12
+named(lx, ly, lw_, lh, "language model", "parametric knowledge,\nchooses the next action", thick=True)
 arrow((lx + lw_ / 2 - 5, ly + lh), (lx + lw_ / 2 - 5, 43.5))
 arrow((lx + lw_ / 2 + 5, 43.5), (lx + lw_ / 2 + 5, ly + lh))
 text(lx + lw_ / 2 - 6, (ly + lh + 43.5) / 2, "action", size=7, ha="right")
@@ -154,8 +154,8 @@ text(lx + lw_ / 2 + 6, (ly + lh + 43.5) / 2, "result", size=7, ha="left")
 
 # knowledge, the yellow sticker
 sticker(CX0 + 4.5, 16, 20, 21)
-text(CX0 + 14.5, 31.2, "knowledge", size=7.5, bold=True)
-text(CX0 + 14.5, 23.3, "instruction file,\nretrieved,\nlibrary docs", size=7)
+text(CX0 + 14.5, 31.6, "explicit\nknowledge", size=7.5, bold=True)
+text(CX0 + 14.5, 22.6, "instruction file,\nretrieved,\nlibrary docs", size=7)
 arrow((CX0 + 24.5, 30), (lx, 30), lw=0.8, head=(1.1, 0.96))
 
 # model builder
