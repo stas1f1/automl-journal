@@ -3,7 +3,8 @@
 
 % Revised 26 October 2026 after Boukhanovsky's comments; 27 October:
 % composite AutoML in the history, sources after each hypothesis and the
-% paragraph on why the hypotheses matter.  Order: history,
+% paragraph on why the hypotheses matter.  18 November 2026, for
+% Knowledge-Based Systems: the four places where knowledge is held.  Order: history,
 % gap, three hypotheses, contributions, test bed, outline.  The numbers
 % behind the hypotheses are in the Conclusion.
 
@@ -12,23 +13,29 @@ Rice stated the algorithm selection problem in 1976: choose, for a given
 dataset, the algorithm that performs best on it~\citep{rice1976algorithm}.
 AutoML frameworks of the last decade solve a wider version of this problem.
 They search a predefined space of pipelines and hyperparameters under a time
-budget~\citep{thornton2013autoweka,feurer2015autosklearn,gijsbers2024amlb}.
+budget~\citep{thornton2013autoweka,feurer2015autosklearn,he2021automl,gijsbers2024amlb}.
 Composite AutoML extends the search to the structure of the pipeline. The
 pipeline becomes a workflow, a directed acyclic graph of preprocessing steps
 and models, and an evolutionary algorithm designs this graph for each
-task~\citep{nikitin2022fedot}. Agents built on a large language model (LLM)
+task~\citep{nikitin2022fedot,revin2023timeseries,nikitin2024sensitivity}. Agents built on a large language model (LLM)
 are the latest step. They extend the workflow from the pipeline to the whole
 work of a data scientist: they plan experiments, write and repair code, read
-execution logs and revise their own solution~\citep{trirat2025automlagent,guo2024dsagent,chan2025mlebench}. Their
-search space is open, and their behaviour depends on three parts specific to
-agents. The \emph{language model} makes the decisions. The \emph{harness} is
-the code around the model: its tools, control flow, memory and prompts, also
-called a scaffold~\citep{chan2025mlebench,hu2026beyondmodel}. The
-\emph{instruction file} holds the standing instructions that practitioners
-add to tell the agent which libraries to use and how to work. Such files are
-now packaged as agent skills~\citep{li2026skillsbench}.
+execution logs and revise their own solution~\citep{trirat2025automlagent,guo2024dsagent,chan2025mlebench}.
+At every stage the system holds knowledge about how to build a model. An
+AutoML framework holds it in its search space, its defaults and, in
+auto-sklearn, in meta-learning from earlier
+datasets~\citep{feurer2015autosklearn}. An agent holds it in four places.
+The \emph{language model} brings the knowledge acquired in training and
+makes the decisions. The \emph{harness}, the code around the model, holds
+the knowledge of its designers in its tools, control flow, memory and
+prompts. It is also called a
+scaffold~\citep{chan2025mlebench,hu2026beyondmodel}. An \emph{AutoML
+library} called by the agent holds knowledge about search and tuning. The
+\emph{instruction file} holds explicit knowledge that practitioners write
+down: which libraries to use and how to work. Such files are now packaged as
+agent skills~\citep{li2026skillsbench}.
 
-How much each of the three parts contributes to accuracy is not known. A
+Which of these places of knowledge decides accuracy is not known. A
 typical paper in the area introduces one system and reports an improvement
 over a previous one. The language model, the harness, the instructions and
 the evaluation protocol all change at once, and the published ablations
@@ -42,8 +49,8 @@ practitioner would use: gradient boosting with tuned hyperparameters. In
 the closest study the reference is an untuned gradient-boosting
 model~\citep{tsymbalov2026graceds}.
 
-Three hypotheses about the sources of accuracy and reliability, H1 to H3,
-frame the problem. They apply to any agentic AutoML system, and
+Three hypotheses about where the knowledge that decides accuracy and
+reliability lies, H1 to H3, frame the problem. They apply to any agentic AutoML system, and
 Section~\ref{sec:scheme} states them in terms of a general scheme of such
 systems (Figure~\ref{fig:scheme}).
 \begin{enumerate}
@@ -52,8 +59,8 @@ systems (Figure~\ref{fig:scheme}).
 \setlength{\itemsep}{1pt}
 \item \textbf{The harness alone does not decide accuracy.}\label{hyp:harness}
   A harness decides who plans, in what order the steps run and how errors
-  are repaired. The modelling decisions come from the same language model in
-  every harness. If every harness ends with the same kind of model, accuracy
+  are repaired. The knowledge behind the modelling decisions comes from the
+  same language model in every harness. If every harness ends with the same kind of model, accuracy
   should be close. The harness should then show in reliability, run time and
   the range of tasks a system can take. It follows indirectly from the
   discussion of harness effects. A minimal agent matches four
@@ -61,32 +68,35 @@ systems (Figure~\ref{fig:scheme}).
   model~\citep{brilliantov2026harness}, while with weaker models the scores
   of harnesses spread widely~\citep{harnessbench2026} and their token costs
   differ by up to 40$\times$~\citep{scaffoldeffect2026}.
-\item \textbf{Accuracy follows who builds and tunes the model.}\label{hyp:builder}
-  An agent that writes its own code is likely to reproduce a common default
-  configuration. Tuning it takes a search that the agent must decide to run
-  and pay for in time. An AutoML library runs such a search by design. The
+\item \textbf{Accuracy follows the part that holds and applies the
+  knowledge of search and tuning.}\label{hyp:builder}
+  An agent that writes its own code relies on the knowledge of the language
+  model and is likely to reproduce a common default configuration. Tuning it
+  takes a search that the agent must decide to run and pay for in time. An
+  AutoML library holds the knowledge of this search and runs it by design. The
   procedure that builds the model should therefore matter more than the
   harness that calls it. Indirect support comes from ablations of
   search-based agents, where the search over candidate solutions is the
   largest contributor in one system~\citep{toledo2025aira}, and from systems
   that hand the final model to an AutoML
   library~\citep{fang2025mlzero,lapin2025lightautods}.
-\item \textbf{The instruction file and the language model change
+\item \textbf{Explicit knowledge and the language model change
   reliability, and the direction depends on the harness.}\label{hyp:interaction}
   An instruction file is written for one harness and assumes its control
   flow, for example a repair loop that waits for a long fit to finish. A
-  different language model changes how much the agent reasons within the
-  same time limit. One and the same file or model can then help in one
-  harness and harm in another. The same is suggested by studies of skills
+  different language model brings different knowledge and reasons at a
+  different pace within the same time limit. One and the same file or model
+  can then help in one harness and harm in another, so knowledge written down
+  for one system need not transfer to another. The same is suggested by studies of skills
   and context files, whose effect ranges from a gain to a loss and depends on
   the harness~\citep{li2026skillsbench,gloaguen2026agentsmd,yang2025rdagent},
   and by coding agents, where the advantage of an elaborate harness shrinks
   as the language model improves~\citep{hu2026beyondmodel,kapoor2024agents}.
 \end{enumerate}
 
-The hypotheses matter for anyone who builds such a system: they say whether
-effort should go into the harness, into the procedure that builds the model
-or into the instructions. The studies cited above point in both directions
+The hypotheses matter for anyone who builds such a system. They say where
+the knowledge of how to build a model should be put: into the harness, into
+the library that builds the model or into written instructions. The studies cited above point in both directions
 on each of them. Practice cannot settle them either. A team that applies
 agentic AutoML to a task first picks a framework, and with it a harness, an
 environment and often a language model and a set of instructions. Every
@@ -99,16 +109,18 @@ time. Its results show how such systems should be built, and
 Section~\ref{sec:rules} states them as design rules.
 
 The paper makes four contributions. The first is a general scheme of
-agentic AutoML that separates the language model, the harness, the
-instruction file and the procedure that builds the model
+agentic AutoML that separates the language model, the harness, the model
+builder and the instruction file, and names the knowledge each of them holds
 (Section~\ref{sec:scheme}). The second is an experimental design that
-separates these parts. The language model and the tasks are fixed, the
-instruction file is split into its two parts, and accuracy is read against
-tuned reference methods apart from the trials without a submission
+separates these parts. The language model and the tasks are fixed. The
+instruction file is split into the knowledge of which library to use and
+the knowledge of how to train, and is moved to a second harness to test
+whether this knowledge transfers. Accuracy is read against tuned reference
+methods apart from the trials without a submission
 (Section~\ref{sec:design}). The third is a test of the three hypotheses on
 three harnesses that cover the main patterns of the scheme
 (Sections~\ref{sec:results}--\ref{sec:mechanism}). The fourth is a set of
-design rules that follow from the hypotheses
+design rules on where to put knowledge in such a system
 (Section~\ref{sec:rules}). All tasks, instruction files, traces and
 result tables are released.
 
@@ -122,7 +134,7 @@ loop (Figure~\ref{fig:systems}). The instruction file of AutoDS-Tools, about
 5\,000 characters, names the library to use and prescribes a training
 discipline. We switch it on and off, split it into these two parts and
 append it to Terminus-2. We also replace the language model with a smaller
-and a larger one. Accuracy is measured on the eight tabular tasks of TabReD
+and a larger one while the rest of the system stays fixed. Accuracy is measured on the eight tabular tasks of TabReD
 with temporal splits, against the eighteen tuned reference methods published
 with it~\citep{rubachev2024tabred}. MLAgentBench~\citep{huang2024mlagentbench}
 and three tasks from published scientific studies change the starting point.
